@@ -1,0 +1,797 @@
+' {$STAMP BS2P}
+' {$PBASIC 2.5}
+' {$PORT COM3}
+
+
+version  CON 1602
+
+'**********************
+'   Slot 4
+'**********************
+
+'
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXX >>  Start Here to Copy Header entries  <<  XXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'
+                       'S0 contains the timing loop
+                       'S2 contains the event table AND actions.
+                       'S1 contains test code placeholder
+'
+' 2012
+' 1. added test for payload interface boards
+' 2. clean slot 0, added time 0,1,2 for clock speed
+'
+'******************  Start of System Global lables *******************
+'     Conditional Assemblies
+'
+#DEFINE FlyConfig = 0              '1=Set to Flight Configuration, 0=Test Configuration
+#DEFINE fastclock = 0              '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
+#DEFINE testreset = 1              '1=test reset and reset count
+#DEFINE SaySlot   = 1              '1=Say Slot with vector
+#DEFINE Sayit = 1                  '1=Say what is happening
+#DEFINE nodebug = 1                '1= nodebug outputs
+#DEFINE MasterEnabled = 1          '1= enable checking for master input
+'
+'
+'***************************************************************************************
+'********* EEPROM Data Storage Area ****************************************************
+'Start storage at top of slot6 and work downwards, code can go in slot 4, but be carful
+'not to overwrite the data storage.  Programs go from botton to top, Data storage, and
+'our data storage allocations are from the top down.  MUST BE CHECKED MANUALLY, program
+'does not know any better.
+'***************************************************************************************
+'
+DataStorage    CON 4                'EEROM data is storaged in Slot 4
+'
+'
+'Data storage is defined at the end of this slot (slot 4), the spaces and address must match up with
+'the lables defined here which will be used across all slots, be careful in defining this
+'
+Cstatus             CON 0                    '00 See data at data storage area
+TestNumber          CON Cstatus+1            'Test Sequence Counter  1112
+ResetNumber         CON TestNumber+2         '00 Number of times reset sence downloaded
+IDcodefile          CON ResetNumber+1        'MicroLab alpha ID  2 ascii values
+LastPhoto           CON IDcodefile+2         '00000 Photo number  5 ascii values
+LastBKupload        CON LastPhoto+5          'Number of the last command file uploaded
+NextBktoLoad        CON LastBKupload+1       'NextBktoLoad       next bank to load
+LastuploadCommand   CON NextBktoLoad+1       'LastuploadCommand   Number of the last command file uploaded
+Missionsec          CON LastuploadCommand+2  'Missionsec          clock sec count here 0-59
+Missionmin          CON Missionsec+1         'Missionmin          clock min count here 0-59
+Missionhour         CON Missionmin+1         'Missionhour         lock hour count here 0-23
+Missionday          CON Missionhour+1        'Missionday          lock day count here 0-xx
+TempStatus          CON Missionday+1         'Temp storage for test status routines
+'
+'     'ETC....
+'
+'**********************************************************************
+'******** Scrathpad Ram Defined Ram location across all slots *********
+'**********************************************************************
+'
+ScratchRam     CON 0                  'start of Scratch ram locations bytes
+'
+'----- Bios and User Scratch pad memory locations -----------------------------
+'
+Resetverify    CON ScratchRam         'location is 0 on Power on Reset or not Zero for slot return
+VectorFromSlot CON Resetverify+1      'Slot to return to - who called the program vector
+VectorFromNum  CON VectorFromSlot+1   'From Vector number within slot place to Return to
+SlotErrReturn  CON VectorFromNum+1    'Error code return from Slot program run
+'
+sMissionday     CON SlotErrReturn+1     'BIOS Mission clock day count here 0-xx
+sMissionhour    CON sMissionday+1       'BIOS Mission clock hour count here 0-23
+sMissionmin     CON sMissionhour+1      'BIOS Mission clock min count here 0-59
+sMissionsec     CON sMissionmin+1       'BIOS Mission clock sec count here 0-59
+'
+'---------- Bios provided data for user -----------------------------------------
+'
+RTCsec         CON sMissionsec+1      'BIOS Real Time clock sec count here 0-59
+RTCmin         CON RTCsec+1           'BIOS Real Time clock min count here 0- 59
+RTChour        CON RTCmin+1           'BIOS Real Time Clock hour count here 0-23
+RTCday         CON RTChour+1          'BIOS Real Time clock day count here 1-31
+RTCmonth       CON RTCday+1           'BIOS Real Time clock month count here 1-12
+RTCyear        CON RTCmonth+1         'BIOS Real Time clock year count here 0-99
+'
+AmbTemperature     CON  RTCyear+1             'BIOS Ambient temperature in celcius (8 low bits of 10 bits)
+AmbTemperaturehigh CON  AmbTemperature+1      'BIOS Ambient temperature in celcius (2 high bits of 10 bits)
+AmbHumidity        CON  AmbTemperaturehigh+1  'BIOS Ambient Humidity  (8 low bits of 10 bits)
+AmbHumidityhigh    CON  AmbHumidity+1         'BIOS Ambient Humidity  (2 high bits of 10 bits)
+'
+A2Dchannel0        CON  AmbHumidityhigh+1     'BIOS Analog channel 0, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel0high    CON  A2Dchannel0+1         'BIOS Analog channel 0, (2 bits 0f 0v to 2.5v low-> high)
+A2Dchannel1        CON  A2Dchannel0high+1     'BIOS Analog channel 1, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel1high    CON  A2Dchannel1+1         'BIOS Analog channel 1, (2 bits 0f 0v to 2.5v low-> high)
+A2Dchannel2        CON  A2Dchannel1high+1     'BIOS Analog channel 2, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel2high    CON  A2Dchannel2+1         'BIOS Analog channel 2, (2 bits 0f 0v to 2.5v low-> high)
+A2Dchannel3        CON  A2Dchannel2high+1     'BIOS Analog channel 3, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel3high    CON  A2Dchannel3+1         'BIOS Analog channel 3, (2 bits 0f 0v to 2.5v low-> high)
+InternTemp         CON  A2Dchannel3high+1     'Bios internal temp of msp430- Needs Calibration
+InternTemphigh     CON  InternTemp+1          'Bios internal temp of msp430- Needs Calibration
+VCCby2             CON  InternTemphigh+1      'Bios VCC/2 for calabration - Regulator check
+VCCby2high         CON  VCCby2+1              'Bios VCC/2 for calabration - Regulator check
+'
+'----------- Bios Reserved working registers ----------------------------------------
+'
+CameraRes       CON  VCCby2high+1     'Name this Bios Register (camera Resolution 320 $05 640 $07)
+CameraQua       CON  CameraRes+1      'Name this Bios Register (Camera quality $02 normal, $01 Better, $00 Best)
+SlaveErr        CON  CameraQua+1      'slave MSP430 status byte (Local Slave Status)
+ActiveBank      CON  SlaveErr+1       'Name this Bios Register (Active bank)
+TextPointer     CON ActiveBank+1      'Name 16 bit pointer to text in active bank
+'
+'MicroLab Bios Status Byte given to Master on Status Request
+'  Location and Bits defined
+'
+MLabStatus     CON  TextPointer+2     'Current Status of MicroLab
+HighPower      CON  $80               '  Bit 7=high power request
+ExComplete     CON  $40               '  Bit 6 = execution of upload command completed
+                                      '  Bit 5,4,3, don't care
+B2ready        CON  $04               '  Bit 2 = bank 2 ready for upload
+B1ready        CON  $02               '  Bit 1 = bank 1 ready for upload
+B0ready        CON  $01               '  Bit 0 = bank 0 ready for upload
+'
+'MicroLab Power Status Registers
+'                                      '
+PowerStatus    CON  MLabStatus+1      'Power control value
+P300ma         CON  $80               'enable high power 300ma mode
+P75ma          CON  $40               'set to 75ma power usage
+P50ma          CON  $20               'set to low power 50ma
+P100ma         CON  $00               'default value of power 100ma
+'
+'Reserved Bios Working Registers
+'
+BiosWord0      CON  PowerStatus+1     'BIOS Reserved Word for Bios operations
+BiosWord0h     CON  BiosWord0+1       '
+BiosWord1      CON  BiosWord0h+1      'BIOS Reserved Word for Bios operations
+BiosWord1h     CON  BiosWord1+1       '
+BiosWord2      CON  BiosWord1h+1      'BIOS Reserved Word for Bios operations
+BiosWord2h     CON  BiosWord2+1       'BIOS Reserved Word for Bios operations
+BiosWord3      CON  BiosWord2h+1      'BIOS Reserved Word for Bios operations
+BiosWord3h     CON  BiosWord3+1       'BIOS Reserved Word for Bios operations
+'
+'-----------General Purpose registers across Slots--------------------------------------
+'
+scr_Register0  CON BiosWord3h+1       'General use Scratchpad Ram location across all slots
+scr_Register1  CON scr_Register0+1    'General use Scratchpad Ram location across all slots
+scr_Register2  CON scr_Register1+1    'General use Scratchpad Ram location across all slots
+scr_Register3  CON scr_Register2+1    'General use Scratchpad Ram location across all slots
+scr_Register4  CON scr_Register3+1    'General use Scratchpad Ram location across all slots
+scr_Register5  CON scr_Register4+1    'General use Scratchpad Ram location across all slots
+scr_Register6  CON scr_Register5+1    'General use Scratchpad Ram location across all slots
+scr_Register7  CON scr_Register6+1    'General use Scratchpad Ram location across all slots
+'
+'--------- Location for Saved User Variables -----------------------------------------
+'
+Reg0low    CON       scr_Register7+1   'Storage of user variables during Bios operations
+Reg0high   CON       Reg0low+1         'Storage of user variables during Bios operations
+Reg1low    CON       Reg0high+1        'Storage of user variables during Bios operations
+Reg1high   CON       Reg1low+1         'Storage of user variables during Bios operations
+Reg2low    CON       Reg1high+1        'Storage of user variables during Bios operations
+Reg2high   CON       Reg2low+1         'Storage of user variables during Bios operations
+Reg3low    CON       Reg2high+1        'Storage of user variables during Bios operations
+Reg3high   CON       Reg3low+1         'Storage of user variables during Bios operations
+Reg4low    CON       Reg3high+1        'Storage of user variables during Bios operations
+Reg4high   CON       Reg4low+1         'Storage of user variables during Bios operations
+Reg5low    CON       Reg4high+1        'Storage of user variables during Bios operations
+Reg5high   CON       Reg5low+1         'Storage of user variables during Bios operations
+Reg6low    CON       Reg5high+1        'Storage of user variables during Bios operations
+Reg6high   CON       Reg6low+1         'Storage of user variables during Bios operations
+Reg7low    CON       Reg6high+1        'Storage of user variables during Bios operations
+Reg7high   CON       Reg7low+1         'Storage of user variables during Bios operations
+Reg8low    CON       Reg7high+1        'Storage of user variables during Bios operations
+Reg8high   CON       Reg8low+1         'Storage of user variables during Bios operations
+Reg9low    CON       Reg8high+1        'Storage of user variables during Bios operations
+Reg9high   CON       Reg9low+1         'Storage of user variables during Bios operations
+Reg10low   CON       Reg9high+1         'Storage of user variables during Bios operations
+Reg10high  CON       Reg10low+1         'Storage of user variables during Bios operations
+Reg11low   CON       Reg10high+1        'Storage of user variables during Bios operations
+Reg11high  CON       Reg11low+1         'Storage of user variables during Bios operations
+Reg12low   CON       Reg11high+1        'Storage of user variables during Bios operations
+Reg12high  CON       Reg12low+1         'Storage of user variables during Bios operations
+'
+'
+MoprClk0  CON        Reg12high+1        'Mission Operations Clock0, fail safe operations
+MoprClk1  CON        MoprClk0+2         'Mission Operations Clock1, fail safe operations
+MoprClk2  CON        MoprClk1+2         'Mission Operations Clock1, fail safe operations
+MoprClk3  CON        MoprClk2+2         'Mission Operations Clock1, fail safe operations
+'
+'
+NextAvailiable CON MoprClk3+2          'Next Availiable location for scratch pad ram storage
+'
+'-------   User Scratchpad Locations open for use -------------
+'
+'
+'
+'-------   User Scratchpad Locations open for use -------------  '
+'
+SlotInfo    CON 127                    'contains the current running slot.
+'
+'location number 127 contains the number of the currently running program slot
+'
+'************* End of Scratchpad Ram Space difinations ****************
+'
+'**********************************************************************
+'----- MicroLab Pins and ports on the BS2p24 Defined for BIOS ------------
+'**********************************************************************
+internalscl       CON 0       'BS2p24 interal I2c buss
+internalsda       CON 1       'BS2p24 interal I2c buss
+cameraclk         CON 2       'Camera Clock
+cameramiso        CON 3       'Camera master in slave out
+cameramosi        CON 4       'Camera msater out slave in
+camerahold        CON 5       'Camera Hold
+masterin          PIN 6       'Serial Input fm master
+'masterin          CON 6       'Serial Input fm master
+masterout         CON 7       'Serial Output to master
+payloadsda        CON 8       'SDA on payload expansion board
+payloadscl        CON 9       'SCL on payload expansion board
+internawin        CON 10      'Local slave A to D, watchdog serial in
+internawout       CON 11      'Loacl slave A to D, watchdog serial out
+camerapower       CON 12      'Camera on and off for recycle
+votedead          CON 13      'AMicroLab vote that Master is dead
+payloadio14       CON 14      'I/O payload line
+cameraCS          CON 15      'camrea chip select pin
+'
+'
+'---------------- Bios System General constants --------------------
+'
+' Input terminal constants for test set to
+con_in       CON 16          'Pin 16 is BS2P serial in from RS232 connector
+con_baud     CON 240         'set to 9600 8bit true
+con_tout     CON 250         'time out waiting for terminal input appx 100ms
+'
+'----------------- Bios General constants ---------------------------
+'
+InternI2c          CON      0          'Internal I2C buss address control
+PLi2c              CON      8          'Payload I2c BUSS address control
+PCF8574address     CON      $40        'internal I2C buss address of PFC8574
+Ebankaddress       CON      $A0        'Address of 256k eerom memory
+Ebank0             CON      $00        'Ebank0 bank address 00000-0FFFF
+Ebank1             CON      $02        'Ebank1 bank address 10000-1FFFF
+Ebank2             CON      $04        'Ebank2 bank address 20000-2FFFF
+Ebank3             CON      $06        'Ebank3 bank address 30000-3FFFF
+'
+TextBuffer         CON      $C000      'Text buffer in bank 0,1, and 2
+'
+Camera320          CON      $05        'Camera Resolution 320X240
+Camera640          CON      $07        'Camera Resolution 640X480
+CameraNormal       CON      $02        'Camera Quality Normal
+CameraBetter       CON      $01        'Camera Quality Better
+CameraBest         CON      $00        'Camera Quality Best
+'
+Baud9600T CON $00F0  'Baudrate of 9600 no parity True
+Baud2400T CON $03FD  'Baudrate of 2400 no parity true
+'
+Ack       CON $5A                      'Acknowledge response to McMek
+TimeOut   CON 500                      'input command timeout is .5 seconds
+Pace      CON 1                        'pace of output from MicroLab to System terminal
+ETX       CON $03                      'End of Text command
+EOF       CON $FF                      'end of file marker
+'
+'------------ Bios System Error and event codes for logging --------------------
+'
+NoError       CON   0       'no error on return, all ok
+'
+'-----------------  Variables Same for all program Slots  ---------------
+'  Used By BIOS
+xcounter    VAR Word         'General use 16 bit counter
+TempWord    VAR Word         'General use Temp Word Register
+TempWord1   VAR Word         'General use Temp Word Register
+counter     VAR Byte         'General use 8 bit counter
+TempReg0    VAR Byte         'General use location for values during processes
+TempReg1    VAR Byte         'General use location for values during processes
+TempReg2    VAR Byte         'General use location for values during processes
+TempReg3    VAR Byte         'General use location for values during processes
+Sdata       VAR Byte         'data to send to uart
+text        VAR Byte(8)      'make array for text
+'
+'  Variables open for use by User (9 Bytes)and not touched by the BIOS
+'  Note: above BIOS Variables can/may be used by the user, however
+'  the value may be destroyed by a Call to the BIOS or BIOS operation
+'
+UserVar0    VAR Byte         'user Varible space - Should be same across all slots
+UserVar1    VAR Byte         'user Varible space - Should be same across all slots
+UserVar2    VAR Byte         'user Varible space - Should be same across all slots
+UserVar3    VAR Byte         'user Varible space - Should be same across all slots
+UserVar4    VAR Byte         'user Varible space - Should be same across all slots
+UserVar5    VAR Byte         'user Varible space - Should be same across all slots
+
+'
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' Calibration values must be calculated and writen through the test system write eeram
+' not automatically done, this is a one time event. Calibrate CPU temp, may be as
+' much as 60 degrees C off from the factory.
+'
+SysCalBank   CON   Ebank3   'Bank for system calibration
+SysCPUcal    CON   $C002    'External E2RAM calibration locations
+'
+'
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXX  >> End of Header Copy Entries  <<  XXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'
+''*************************************************************************
+'   Enter with TempReg1 containing the program index to run in this slot
+'*************************************************************************
+  '
+  #IF SaySlot = 1 #THEN
+  DEBUG ">S4-V",DEC TempReg1,CR
+  #ENDIF
+  BRANCH TempReg1,[HeartBeattextReturn,           '0 vector flight condition setup override
+  WriteTextBuffer,                     '1 vector to this program
+  P2vector,                            '2 vector to this program
+  P3vector]                            '3 vector to this program
+  '
+
+'*************************************************************************
+'   To Run program in another slot Set TempReg1 to the vector index of
+'   that program within the target slot then "RUN" that slot,  If a return
+'   to originating slot is desired then the return vector index must be stored
+'   in the VectorFromNum location in the scratch pad memory,  and the return
+'   slot is stored in the VectorFromSlot scratch pad memory.  Then a general
+'   routine can be used to return to the originating program.
+'*************************************************************************
+  '
+InSlot  CON    4               'Define this slot, each slot is numbered
+  '
+  '***********************************************************************
+  '       To go to a slot and set a return
+  'TempReg0 = Returning vector indes
+  'TempReg1 = vector index to run in next slot
+  'TempReg3 = the slot number to go to
+  '**********************************************************************
+  '
+GotoSlot:
+  PUT VectorFromNum,TempReg0     'this is the vector when returning back to this slot
+  PUT VectorFromSlot,InSlot      'To vector back to this Slot
+  RUN TempReg3
+  '
+  '
+  '***************************************************************************
+  'When returning back, Set TempReg1 to the return vector in the calling slot
+  'get the returning slot and RUN that slot
+  '***************************************************************************
+  '
+ReturnBack:
+  GET VectorFromNum,TempReg1     'fetch the vector to run when returning to calling slot
+  GET VectorFromSlot,TempReg0    'fetch the program slot where the routine was called
+  RUN TempReg0                   'RETURNback now....!!!!
+  '
+
+  '
+  '
+  '
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXX   Programs in this slot  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'
+ '======================================================================
+P1vector:
+   GOTO ReturnBack      'back to calling routine
+    '======================================================================
+P2vector:
+  GOTO ReturnBack      'back to calling routine
+    '======================================================================
+P3vector:
+  GOTO ReturnBack      'back to calling routine
+  '
+  '
+'********************************************************
+'  Heart Beat Proceedure, Place the return index vector number
+'  in TempReg0 so when Heart Beat is finished the program knows
+'  where to return.  Heart Beat, updats time,A2D, watchdog, plus
+'  other maintance functions.
+'********************************************************
+'
+HeartBeatUpdate:
+  TempReg0 = 0    'Index to vector to return in this slot HeartBeatReturn
+  TempReg1 = 1    'program to run in slot 1
+  TempReg3 = 7    'Heart Beat slot 7 program 1 vector 1
+  GOTO Gotoslot   'Execute a slot goto proceedure now doit
+'
+'********************************************************
+
+  '
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'  Default Text with values from the scratch pad memory
+'  Default Text with values in place
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  '
+  'Should enter here after photo was taken and transfered to the active bank
+  '  end of this routine set up for next photo/text session
+  'Enter with:
+  '            ActiveBank = Set to active bank (0 2 or 4)where text will go!!!!
+  '            '
+  'Exit with:  xcounter = 16 bits - pointer to the next text location in
+  '                     Text Bank pointer updated to point to the next text location
+  '
+  '
+WriteTextBuffer:
+      'do a heartbeat first forced jump and back
+      TempReg1=2                  'Forced Heartbeat direct jumps
+      RUN 7                       'Run it is slot 7 forced vector 2
+HeartBeattextReturn:
+      '
+      '
+      STORE DataStorage           'set for stamp eerom storage
+      GET ActiveBank,TempReg2     'Set TempReg2 to the Active Bank 0 2 4
+      xcounter = TextBuffer       'Set xcounter to point to text location $C000 16k
+      TempWord = ID               'point TempWord to the beginning of text
+  '
+  '  now TempReg2 => ActiveBank, xcounter => address in ee2ram, TempWord => phrase to write
+  '  This will store the default Text Output file and fill in the values
+  '
+GetnextChar:
+    READ TempWord,TempReg0    'get the charator
+    IF TempReg0 = EOF THEN GOTO TextFinished   'found end of phase now finished
+    TempWord = TempWord+1                    'point to next charator
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'write charator in ee2ram
+    PAUSE 10                 'wait for the write to chip to complete internal to chips
+    xcounter=xcounter+1     'xcounter points to next text charator location
+    IF xcounter=$FFFF THEN GOTO TextFinished  ' ERROR CONDITION
+    GOTO GetnextChar        'not finished yet get the next charator
+TextFinished:
+    TempReg0 = EOF          'write end of file marker
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'write charator in ee2ram
+    PAUSE 10
+    PUT TextPointer,Word xcounter 'Put Text pointer into Scratchpad for additional text to be written
+    '                             'The user can use the Text pointer in the current bank to add their on text
+    '                             'to the output file...
+    '
+    '******  Now fill in the values in the text (dont touch TempReg2) *****
+    '
+    ' file name
+    '
+    TempWord = (IDcodefile-Cstatus)    'point to current file name with id stored in stamp eerom
+    xcounter = TextBuffer+(LastPN-ID)    'point to EERAM where file name lives in the text file output
+    FOR xcounter = TextBuffer+(LastPN-ID) TO TextBuffer+(LastPN-ID)+6 'loop to move file name XX0000
+    READ TempWord,TempReg0               'get the value from stamp ee storage location
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'write charator in ee2ram
+    PAUSE 10                              'wait for write
+    TempWord = TempWord+1
+    NEXT
+    '
+    ' Enter Date and Time - place ascii values in text buffer output
+    '
+    GET RTCmonth,TempWord                   'get month in
+    xcounter=TextBuffer+(ADate-ID)          'point to place to write
+    GOSUB ConvertWrite2                     'get ascii values and write in bank
+    xcounter=xcounter+2                     ' over /
+    GET RTCday,TempWord                     'get day
+    GOSUB ConvertWrite2                     'write the day in bank
+    xcounter=xcounter+2                     'over /
+    GET RTCyear,TempWord                    'get year
+    GOSUB ConvertWrite2                     'write the year in bank
+    xcounter=xcounter+5                     'over" at "
+    GET RTChour,TempWord                    'get hour from scratch
+    GOSUB ConvertWrite2                     'write the hour in bank
+    xcounter=xcounter+2                     'over :
+    GET RTCmin,TempWord                     'get the Minute
+    GOSUB ConvertWrite2                     'write the minute in bank
+    xcounter=xcounter +2                    'over :
+    GET RTCsec,TempWord                     'get seconds in bank
+    GOSUB ConvertWrite2                     'write seconds in text for output
+    '
+    ' Enter Mission Clock - place ascii values in text buffer output
+    '
+    STORE DataStorage                       'set to point to slot EERAM
+    READ Missionday,TempWord                'get the mission day count
+    xcounter=TextBuffer+(Mtime-ID)          'point to missionday entry in text buffer
+    GOSUB ConvertWrite2                     'get convert and write ascii in test
+    READ Missionhour,TempWord               'get the hour
+    xcounter=xcounter+3                     'pointer move to hour
+    GOSUB ConvertWrite2                     'get, convert, write ascii in text
+    READ Missionmin,TempWord                'get the min
+    xcounter=xcounter+3                     'point to min
+    GOSUB ConvertWrite2                     'convert,write ascii
+    READ Missionsec,TempWord                'get the sec
+    xcounter=xcounter+3                     'point to sec
+    GOSUB ConvertWrite2                     'place sec in text buffer
+    '
+    ' say active bank for storage of text and photo this bank
+    '
+    GET ActiveBank,TempWord                 'get the active bank from scratchpad
+    xcounter = TextBuffer+(Abank-ID)        'point to bank in text output
+    GOSUB ConvertWrite2                     'convert and write it                       '
+    '
+    ' Enter Reset counter
+    '
+    READ ResetNumber,TempReg0               'get reset counter
+    TempWord = TempReg0                     'put it in the correcr register
+    GOSUB Convert2BCD                       'convert the number
+    xcounter = TextBuffer+(Rcnt-ID)         'point to text buffer to write
+    GOSUB writeXXX                          'write three BCD values
+    '
+    ' Ambient Temperature
+    '
+    GET AmbTemperature,TempReg0             'get the temp low 8 bits
+    GET AmbTemperature+1,TempReg1           'get the temp high 2 bits
+    TempWord = (((TempReg0 + (TempReg1*256))*64)/52)    'convert to centergrade
+    GOSUB Convert2BCD                       'ascii values in text(0)(1)(2), convert to 3 bcd digits ascii
+    xcounter = TextBuffer+(ATV-ID)          'point xcounter to entry in default text
+    GOSUB writeXXpointX                     'write text in eeram
+    '
+    ' Ambient Humidity
+    '
+    GET AmbHumidity,TempReg0                'get the humid
+    GET AmbHumidity+1,TempReg1              'get the humid
+    TempWord = (((TempReg0 + (TempReg1*256))*10)-2048)/86 'convert to %
+    GOSUB Convert2BCD                       'convert to BCD ascii to write in text buffer
+    xcounter = TextBuffer+(AHV-ID)          'point to humidity in text
+    GOSUB writeXX                           'write 2 digits only
+    '
+    ' Ambient CPU Temp
+    '
+    '  need to get calibration - unique to CPU
+    '   355/c<Calibration for slave temperature sensor, could be 60 degrees off
+    '
+    PUT Reg0low,TempReg2                'save current value of TempReg2
+    TempReg2 = SysCalBank               'point TempReg2 to systems bank
+    xcounter = SysCPUcal                'point xcounter to calibration value in e2ram
+    I2CIN InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempWord1.LOWBYTE]  'get to low value
+    xcounter = xcounter+1               'now for the high byte
+    I2CIN InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempWord1.HIGHBYTE] 'get to high value
+    GET Reg0low,TempReg2                'replace TempReg2 value
+    '
+'>355/c<Calibration for slave temperature sensor, could be 60 degrees off
+    GET InternTemp,TempReg0
+    GET InternTemp+1,TempReg1
+    TempWord = (((((TempReg0 + (TempReg1*256))-397)*250)+TempWord1)/355) 'convert to internal temp of cpu
+    GOSUB Convert2BCD                    'ascii values in text(0)(1)(2), convert to 3 bcd digits ascii
+    xcounter = TextBuffer+(CTV-ID)       'point xcounter to entry in default text
+    GOSUB writeXX                        'write text in eeram
+    '
+    '  Analog channels and Voltage readings
+    '
+    GET A2Dchannel0,TempReg0            'get from scratch pad
+    GET A2Dchannel0high,TempReg1        'get from scratch pad
+    xcounter =  TextBuffer+(AV0-ID)     'point to text buffer
+    GOSUB WriteAnalog                   'write the values in text
+    '
+    GET A2Dchannel1,TempReg0            'get from scratch pad
+    GET A2Dchannel1high,TempReg1        'get from scratch pad
+    xcounter =  TextBuffer+(AV1-ID)     'point to text buffer
+    GOSUB WriteAnalog                   'write the values in text
+    '
+    GET A2Dchannel2,TempReg0            'get from scratch pad
+    GET A2Dchannel2high,TempReg1        'get from scratch pad
+    xcounter =  TextBuffer+(AV2-ID)     'point to text buffer
+    GOSUB WriteAnalog                   'write the values in text
+    '
+    GET A2Dchannel3,TempReg0            'get from scratch pad
+    GET A2Dchannel3high,TempReg1        'get from scratch pad
+    xcounter =  TextBuffer+(AV3-ID)     'point to text buffer
+    GOSUB WriteAnalog                   'write the values in text
+    '
+    GET  VCCby2,TempReg0            'get from scratch pad
+    GET  VCCby2high,TempReg1        'get from scratch pad
+    xcounter =  TextBuffer+(VcV-ID)     'point to text buffer
+    TempWord = ((((TempReg0 + (TempReg1*256))/2)*25)/51)*2 'for 3.3 not 1/2 3.3 number
+    GOSUB WriteAnalog33                   'write the values in text
+    '
+    ' Systems Status
+    '
+    GET MLabStatus,TempReg0               'get system status
+    FOR xcounter = TextBuffer+(SStat-ID)TO TextBuffer+(SStat-ID)+7 'point to status bytes in text output
+    IF TempReg0 >= $80 THEN TempReg1="1":GOTO SS1or0    'check MSB bits shifted to MSB to test
+    TempReg1="0"                           'was less than $80 then the bit was a "0"
+SS1or0:
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg1]  'write charator in ee2ram
+    PAUSE 10                              'wait for write
+    TempReg0 = TempReg0 << 1             'shift in next bit
+    NEXT
+    '
+    ' To Add additional Text To the Text output file => Add it here
+    ' Be carful with pointers, and write to the
+    '
+    '***********************************************************************
+    '        TEST NOT NECESSARY TO FLY
+    'read back  test here $$$$$ output the Text buffer until the EOF end of file
+    '***********************************************************************
+    '
+    GET ActiveBank,TempReg2             'Set TempReg2 to the Active Bank 0 2 4
+    xcounter = TextBuffer               'Set xcounter to point to text location $C000 16k
+RBnext:
+    I2CIN InternI2c, $A1 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'write charator in ee2ram
+    IF TempReg0 = EOF THEN GOTO RBfinished
+    IF TempReg0 < CR THEN  TempReg0 = $20
+    DEBUG TempReg0
+    xcounter=xcounter+1:GOTO RBnext
+RBfinished:
+    '************************************************************************
+    '************************************************************************
+    '
+    ' Here when Text Buffer has been written and data updated in the text output file
+    ' Now get ready for the next Photo and Text event
+    '
+'*********************************************************************
+'Inc Photo Bank with rollover, Go to the next Bank of 0,1,2 to store the photo
+' and set the status flag that photo and text is ready to upload
+'*********************************************************************
+    '
+    ' Set Bit in Status Register to state photo and text is availiable to upload
+    '
+    GET ActiveBank,TempReg0         'GET this active bank number
+    IF TempReg0 = 0 THEN TempReg0 = $01 'mask to set bit is status
+    GET MLabStatus,TempReg1         'get current status
+    TempReg0 = TempReg0 | TempReg1  'Set the bit in the status register to state data ready
+    PUT MLabStatus,TempReg0         'Replace Status with the bit set
+    '
+    ' Inc active Bank to the next bank, banks 0,2,4,0,2,4,etc
+    '
+    GET ActiveBank,TempReg0         'GET this active bank number
+    TempReg0 = TempReg0 + 2         'offset to point to next bank 0,2,4,6
+    IF TempReg0 > 4 THEN TempReg0 = 0 'Photo and text bank can not be larger than 4 wrap
+    PUT ActiveBank,TempReg0         'replace Active Bank counter in memory
+    '
+    ' Now need a new file name use the next number in the sequence....
+    '
+'*********************************************************************
+'Inc Photo and File number in ascii format in EEROM bank 4
+'*********************************************************************
+    '
+    STORE DataStorage                    'set for read and write for data in EEROM
+    TempReg2 = 1                         'this is the carry flag to next digit, add 1 to lsd
+    FOR TempReg1 = 4 TO 0                'lets do 5 ascii digits and inc total by one
+    READ  LastPhoto+TempReg1,TempReg0    'read the first or next digit from memory
+    TempReg0 = TempReg0+TempReg2         'Add carry from last digit 0 if frst
+    IF TempReg0 <= "9" THEN TempReg2=0:GOTO IncP1  'undo carry then store it store it                       '
+    TempReg0 = "0"                       'to set digit to "0" because it carried
+    TempReg2 = 1                         'set the carry for next digit in loop
+IncP1:
+    WRITE LastPhoto+TempReg1,TempReg0   'no carry Replace inc count for next time
+    NEXT                                'next digit ascci number inc routine 5 digits
+    '
+    'We now have a new photo and text bank, a new file name for that data
+    'The status register is updated
+    '  This should be the last thing in the process of photo and text storage and
+    '  getting ready to up load to the Master.....
+    '
+'    TempReg0 =
+'    TempReg1=
+'    DEBUG CR,"Pdone",CR
+    '
+'    SEROUT masterout,Baud9600T,Pace,[CR,"Pdone",CR,$1B] 'send "ascii esc" termination charator
+    '
+    GOTO ReturnBack                          'return to calling slot and routine
+    '
+'************************************************************************************
+'************************************************************************************
+'
+'-----------------------------------------------------------------
+' Write text(0) text(1) . text(2) in eeram for text values
+' xcounter=>EERAM to put text ascii
+' ----------------------------------------------------------------
+WriteAnalog:
+    TempWord = ((((TempReg0 + (TempReg1*256))/2)*25)/51)    'convert to voltage number
+WriteAnalog33:
+    GOSUB Convert2BCD                   'convert to ascii BCD
+    TempReg0 = text(0)                   'never over 100% get ascii to first digit
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'write charator in ee2ram
+    PAUSE 10                              'wait for write
+    xcounter = xcounter+2                'over point
+    GOTO writeXX                        'write the next two digits
+writeXXpointX:
+'  DEBUG CR,"xcounter=",HEX4 xcounter,CR  'test
+    TempReg0 = text(0)                   'get ascii to first digit
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'write charator in ee2ram
+    PAUSE 10              'wait for write
+    xcounter = xcounter+1
+    TempReg0 = text(1)
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'write charator in ee2ram
+    PAUSE 10               'wait for write
+    xcounter=xcounter+2    'skip point (dot)
+    TempReg0 = text(2)
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'write charator in ee2ram
+    PAUSE 10               'wait for write
+    RETURN
+ConvertWrite2:
+    GOSUB Convert2BCD           'convert number in TempWord to BCD ascii text
+    GOTO writeXX                'only write 2 digits
+writeXXX:
+    TempReg0 = text(0)                   'never over 100% get ascii to first digit
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'write charator in ee2ram
+    PAUSE 10              'wait for write
+    xcounter = xcounter+1
+writeXX:
+    TempReg0 = text(1)                   'never over 100% get ascii to first digit
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'write charator in ee2ram
+    PAUSE 10              'wait for write
+    xcounter = xcounter+1
+    TempReg0 = text(2)                   'never over 100% get ascii to first digit
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'write charator in ee2ram
+    PAUSE 10               'wait for write
+    RETURN
+    '
+'******************************************************************
+'  Subroutine to convert binary to ascii BCD and put in text(x) array
+'  enter - TempWord 16 bit value, this routine will output
+'          three BCD digits, Therefore it is 000 to 999 only
+'          used as a general routine
+'  exit = text(0), text(1), text(2) have bcd ascii values msd to lsd
+' uses - TempWord, TempReg0, TempReg1, text(0), text(1), text(2)
+'*****************************************************************
+    '
+Convert2BCD:
+    TempReg0 = TempWord/100                             'waht is the 100 digit?
+    IF TempReg0 = 0 THEN text(0) = " ":GOTO Convert2BCD1 'this is MSD of XXX number " " or "
+    TempReg1 = TempReg0 + $30                            'make hundredth ascii
+    text(0) = TempReg1                                   'put it in the text buffer
+Convert2BCD1:
+    TempWord = TempWord - (TempReg0 * 100)               'subtract the 100th value
+    TempReg0 = TempWord/10                               'what is the 10 digit
+    IF TempReg0 = 0 THEN Text(1) = "0" :GOTO Convert2BCD2  'this is 10th digit
+    TempReg1 = TempReg0 +$30                             'make 10th ascii
+    text(1) = TempReg1                                   'put it in the array
+Convert2BCD2:
+    TempWord = TempWord - (TempReg0 * 10)                'subtract 10s value
+    TempReg0 = TempWord                                  'set to units value
+    TempReg1 = TempReg0 +$30                             'make it ascii
+    text(2) = TempReg1                                   'put it in the array
+    RETURN
+    '
+
+   '
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'
+'Variable Data Storage locations for non volitale memory
+'
+'*****DATA************** LABLE DEFINED AT TOP OF SLOT ***********************************
+      DATA $00           'Cstatus          state and status of testing chamber
+      DATA Word $0000    'TestNumber         location in EEROM
+      DATA $00           'ResetNumber        Store number of reset sense last program load
+      DATA "ZL"          'IDcodefile         2 alpha ID of MicroLab "ML,FF,XX,??"
+      DATA "00000"       'LastPhoto          MSD  $30,$30,$30,$30,$30  lsd
+      DATA $00           'LastBKupload       last bank uploaded
+      DATA $00           'NextBktoLoad       next bank to load
+      DATA Word $0000    'LastuploadCommand   Number of the last command file uploaded
+      DATA $00           'Missionsec          clock sec count here 0-59
+      DATA $00           'Missionmin          clock min count here 0-59
+      DATA $00           'Missionhour         lock hour count here 0-23
+      DATA $00           'Missionday          lock day count here 0-xx
+                         'ETC....
+'**************
+' For text
+'**************
+'
+ID       DATA "BIOS Templet Program 2013-2014 Ver 131",CR     'Name of School/Project
+         DATA "Data Download Number "
+LastPN   DATA "ML00000",CR                         'photo file name
+ADate    DATA "00/00/00 at "                       'RTC date
+Atime    DATA "00:00:00",CR                        'RTC time
+         DATA "ML Mission clock = "
+Mtime    DATA "00D 00H 00M 00S",CR                 'Now Mission clock
+         DATA "Storage Bank = "                    'where in the photo
+Abank    DATA "00",CR                              'this  bank for storage
+         DATA "Reset counter "                     'How many resets since last program load
+Rcnt     DATA "000",CR                             'reset count
+         DATA "Ambient Temperature = "             'temperature inside the Microlab
+ATV      DATA "00.0 C",CR                          'Abinent Temp
+         DATA "Ambient Humidity = "                'humidity inside the Microlab
+AHV      DATA "00%",CR                             'ambient humidity
+         DATA "Slave CPU Temperature = "           'Tempature inside slave cpu +/- 60 dC
+CTV      DATA "00.0 C",CR                    '     'not accurate, but relative correct
+         DATA "Channel 0 Analog input = "
+AV0      DATA "0.00 Volts",CR                      'Analog voltage input scaled to 0 to 2.5 volts
+         DATA "Channel 1 Analog input = "
+AV1      DATA "0.00 Volts",CR
+         DATA "Channel 2 Analog input = "
+AV2      DATA "0.00 Volts",CR
+         DATA "Channel 3 Analog input = "
+AV3      DATA "0.00 Volts",CR
+         DATA "3.3 Vcc = "
+VcV      DATA "0.00 Volts",CR
+         DATA "System Status = "                   'status of photo buffers and download/upload
+SStat    DATA "00xxx000",CR
+         DATA "Ver 080313.00",CR
+'         DATA EOF
+         ' To place additional Statements in the Text file for output - the EOF
+         ' byte must be removed and added at the end of the additional statements as
+         ' shown below. Space is limited due to the text being in the same space as the
+         ' program. look at the memory map to determine the space that can be used for
+         ' additional text.
+'
+'Payload1 DATA "User Statement 2",CR '
+'Payload2 DATA "User Statement 3",CR
+'Payload3 DATA "User Statement 4",CR
+'
+EOFmark  DATA EOF,EOF,$00

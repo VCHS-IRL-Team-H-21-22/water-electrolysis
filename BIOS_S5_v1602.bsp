@@ -1,0 +1,961 @@
+' {$STAMP BS2P}
+' {$PBASIC 2.5}
+' {$PORT COM3}
+
+
+version  CON 1602
+
+'**********************
+'   Slot 5
+'**********************
+
+'
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXX >>  Start Here to Copy Header entries  <<  XXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'
+                       'S0 contains the timing loop
+                       'S2 contains the event table AND actions.
+                       'S1 contains test code placeholder
+'
+' 2012
+' 1. added test for payload interface boards
+' 2. clean slot 0, added time 0,1,2 for clock speed
+'
+'******************  Start of System Global lables *******************
+'     Conditional Assemblies
+'
+#DEFINE FlyConfig = 0              '1=Set to Flight Configuration, 0=Test Configuration
+#DEFINE fastclock = 0              '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
+#DEFINE testreset = 1              '1=test reset and reset count
+#DEFINE SaySlot   = 1              '1=Say Slot with vector
+#DEFINE Sayit = 1                  '1=Say what is happening
+#DEFINE nodebug = 1                '1= nodebug outputs
+#DEFINE MasterEnabled = 1          '1= enable checking for master input
+'
+'
+'***************************************************************************************
+'********* EEPROM Data Storage Area ****************************************************
+'Start storage at top of slot6 and work downwards, code can go in slot 4, but be carful
+'not to overwrite the data storage.  Programs go from botton to top, Data storage, and
+'our data storage allocations are from the top down.  MUST BE CHECKED MANUALLY, program
+'does not know any better.
+'***************************************************************************************
+'
+DataStorage    CON 4                'EEROM data is storaged in Slot 4
+'
+'
+'Data storage is defined at the end of this slot (slot 4), the spaces and address must match up with
+'the lables defined here which will be used across all slots, be careful in defining this
+'
+Cstatus             CON 0                    '00 See data at data storage area
+TestNumber          CON Cstatus+1            'Test Sequence Counter  1112
+ResetNumber         CON TestNumber+2         '00 Number of times reset sence downloaded
+IDcodefile          CON ResetNumber+1        'MicroLab alpha ID  2 ascii values
+LastPhoto           CON IDcodefile+2         '00000 Photo number  5 ascii values
+LastBKupload        CON LastPhoto+5          'Number of the last command file uploaded
+NextBktoLoad        CON LastBKupload+1       'NextBktoLoad       next bank to load
+LastuploadCommand   CON NextBktoLoad+1       'LastuploadCommand   Number of the last command file uploaded
+Missionsec          CON LastuploadCommand+2  'Missionsec          clock sec count here 0-59
+Missionmin          CON Missionsec+1         'Missionmin          clock min count here 0-59
+Missionhour         CON Missionmin+1         'Missionhour         lock hour count here 0-23
+Missionday          CON Missionhour+1        'Missionday          lock day count here 0-xx
+TempStatus          CON Missionday+1         'Temp storage for test status routines
+'
+'     'ETC....
+'
+'**********************************************************************
+'******** Scrathpad Ram Defined Ram location across all slots *********
+'**********************************************************************
+'
+ScratchRam     CON 0                  'start of Scratch ram locations bytes
+'
+'----- Bios and User Scratch pad memory locations -----------------------------
+'
+Resetverify    CON ScratchRam         'location is 0 on Power on Reset or not Zero for slot return
+VectorFromSlot CON Resetverify+1      'Slot to return to - who called the program vector
+VectorFromNum  CON VectorFromSlot+1   'From Vector number within slot place to Return to
+SlotErrReturn  CON VectorFromNum+1    'Error code return from Slot program run
+'
+sMissionday     CON SlotErrReturn+1     'BIOS Mission clock day count here 0-xx
+sMissionhour    CON sMissionday+1       'BIOS Mission clock hour count here 0-23
+sMissionmin     CON sMissionhour+1      'BIOS Mission clock min count here 0-59
+sMissionsec     CON sMissionmin+1       'BIOS Mission clock sec count here 0-59
+'
+'---------- Bios provided data for user -----------------------------------------
+'
+RTCsec         CON sMissionsec+1      'BIOS Real Time clock sec count here 0-59
+RTCmin         CON RTCsec+1           'BIOS Real Time clock min count here 0- 59
+RTChour        CON RTCmin+1           'BIOS Real Time Clock hour count here 0-23
+RTCday         CON RTChour+1          'BIOS Real Time clock day count here 1-31
+RTCmonth       CON RTCday+1           'BIOS Real Time clock month count here 1-12
+RTCyear        CON RTCmonth+1         'BIOS Real Time clock year count here 0-99
+'
+AmbTemperature     CON  RTCyear+1             'BIOS Ambient temperature in celcius (8 low bits of 10 bits)
+AmbTemperaturehigh CON  AmbTemperature+1      'BIOS Ambient temperature in celcius (2 high bits of 10 bits)
+AmbHumidity        CON  AmbTemperaturehigh+1  'BIOS Ambient Humidity  (8 low bits of 10 bits)
+AmbHumidityhigh    CON  AmbHumidity+1         'BIOS Ambient Humidity  (2 high bits of 10 bits)
+'
+A2Dchannel0        CON  AmbHumidityhigh+1     'BIOS Analog channel 0, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel0high    CON  A2Dchannel0+1         'BIOS Analog channel 0, (2 bits 0f 0v to 2.5v low-> high)
+A2Dchannel1        CON  A2Dchannel0high+1     'BIOS Analog channel 1, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel1high    CON  A2Dchannel1+1         'BIOS Analog channel 1, (2 bits 0f 0v to 2.5v low-> high)
+A2Dchannel2        CON  A2Dchannel1high+1     'BIOS Analog channel 2, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel2high    CON  A2Dchannel2+1         'BIOS Analog channel 2, (2 bits 0f 0v to 2.5v low-> high)
+A2Dchannel3        CON  A2Dchannel2high+1     'BIOS Analog channel 3, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel3high    CON  A2Dchannel3+1         'BIOS Analog channel 3, (2 bits 0f 0v to 2.5v low-> high)
+InternTemp         CON  A2Dchannel3high+1     'Bios internal temp of msp430- Needs Calibration
+InternTemphigh     CON  InternTemp+1          'Bios internal temp of msp430- Needs Calibration
+VCCby2             CON  InternTemphigh+1      'Bios VCC/2 for calabration - Regulator check
+VCCby2high         CON  VCCby2+1              'Bios VCC/2 for calabration - Regulator check
+'
+'----------- Bios Reserved working registers ----------------------------------------
+'
+CameraRes       CON  VCCby2high+1     'Name this Bios Register (camera Resolution 320 $05 640 $07)
+CameraQua       CON  CameraRes+1      'Name this Bios Register (Camera quality $02 normal, $01 Better, $00 Best)
+SlaveErr        CON  CameraQua+1      'slave MSP430 status byte (Local Slave Status)
+ActiveBank      CON  SlaveErr+1       'Name this Bios Register (Active bank)
+TextPointer     CON ActiveBank+1      'Name 16 bit pointer to text in active bank
+'
+'MicroLab Bios Status Byte given to Master on Status Request
+'  Location and Bits defined
+'
+MLabStatus     CON  TextPointer+2     'Current Status of MicroLab
+HighPower      CON  $80               '  Bit 7=high power request
+ExComplete     CON  $40               '  Bit 6 = execution of upload command completed
+                                      '  Bit 5,4,3, don't care
+B2ready        CON  $04               '  Bit 2 = bank 2 ready for upload
+B1ready        CON  $02               '  Bit 1 = bank 1 ready for upload
+B0ready        CON  $01               '  Bit 0 = bank 0 ready for upload
+'
+'MicroLab Power Status Registers
+'                                      '
+PowerStatus    CON  MLabStatus+1      'Power control value
+P300ma         CON  $80               'enable high power 300ma mode
+P75ma          CON  $40               'set to 75ma power usage
+P50ma          CON  $20               'set to low power 50ma
+P100ma         CON  $00               'default value of power 100ma
+'
+'Reserved Bios Working Registers
+'
+BiosWord0      CON  PowerStatus+1     'BIOS Reserved Word for Bios operations
+BiosWord0h     CON  BiosWord0+1       '
+BiosWord1      CON  BiosWord0h+1      'BIOS Reserved Word for Bios operations
+BiosWord1h     CON  BiosWord1+1       '
+BiosWord2      CON  BiosWord1h+1      'BIOS Reserved Word for Bios operations
+BiosWord2h     CON  BiosWord2+1       'BIOS Reserved Word for Bios operations
+BiosWord3      CON  BiosWord2h+1      'BIOS Reserved Word for Bios operations
+BiosWord3h     CON  BiosWord3+1       'BIOS Reserved Word for Bios operations
+'
+'-----------General Purpose registers across Slots--------------------------------------
+'
+scr_Register0  CON BiosWord3h+1       'General use Scratchpad Ram location across all slots
+scr_Register1  CON scr_Register0+1    'General use Scratchpad Ram location across all slots
+scr_Register2  CON scr_Register1+1    'General use Scratchpad Ram location across all slots
+scr_Register3  CON scr_Register2+1    'General use Scratchpad Ram location across all slots
+scr_Register4  CON scr_Register3+1    'General use Scratchpad Ram location across all slots
+scr_Register5  CON scr_Register4+1    'General use Scratchpad Ram location across all slots
+scr_Register6  CON scr_Register5+1    'General use Scratchpad Ram location across all slots
+scr_Register7  CON scr_Register6+1    'General use Scratchpad Ram location across all slots
+'
+'--------- Location for Saved User Variables -----------------------------------------
+'
+Reg0low    CON       scr_Register7+1   'Storage of user variables during Bios operations
+Reg0high   CON       Reg0low+1         'Storage of user variables during Bios operations
+Reg1low    CON       Reg0high+1        'Storage of user variables during Bios operations
+Reg1high   CON       Reg1low+1         'Storage of user variables during Bios operations
+Reg2low    CON       Reg1high+1        'Storage of user variables during Bios operations
+Reg2high   CON       Reg2low+1         'Storage of user variables during Bios operations
+Reg3low    CON       Reg2high+1        'Storage of user variables during Bios operations
+Reg3high   CON       Reg3low+1         'Storage of user variables during Bios operations
+Reg4low    CON       Reg3high+1        'Storage of user variables during Bios operations
+Reg4high   CON       Reg4low+1         'Storage of user variables during Bios operations
+Reg5low    CON       Reg4high+1        'Storage of user variables during Bios operations
+Reg5high   CON       Reg5low+1         'Storage of user variables during Bios operations
+Reg6low    CON       Reg5high+1        'Storage of user variables during Bios operations
+Reg6high   CON       Reg6low+1         'Storage of user variables during Bios operations
+Reg7low    CON       Reg6high+1        'Storage of user variables during Bios operations
+Reg7high   CON       Reg7low+1         'Storage of user variables during Bios operations
+Reg8low    CON       Reg7high+1        'Storage of user variables during Bios operations
+Reg8high   CON       Reg8low+1         'Storage of user variables during Bios operations
+Reg9low    CON       Reg8high+1        'Storage of user variables during Bios operations
+Reg9high   CON       Reg9low+1         'Storage of user variables during Bios operations
+Reg10low   CON       Reg9high+1         'Storage of user variables during Bios operations
+Reg10high  CON       Reg10low+1         'Storage of user variables during Bios operations
+Reg11low   CON       Reg10high+1        'Storage of user variables during Bios operations
+Reg11high  CON       Reg11low+1         'Storage of user variables during Bios operations
+Reg12low   CON       Reg11high+1        'Storage of user variables during Bios operations
+Reg12high  CON       Reg12low+1         'Storage of user variables during Bios operations
+'
+'
+MoprClk0  CON        Reg12high+1        'Mission Operations Clock0, fail safe operations
+MoprClk1  CON        MoprClk0+2         'Mission Operations Clock1, fail safe operations
+MoprClk2  CON        MoprClk1+2         'Mission Operations Clock1, fail safe operations
+MoprClk3  CON        MoprClk2+2         'Mission Operations Clock1, fail safe operations
+'
+'
+NextAvailiable CON MoprClk3+2          'Next Availiable location for scratch pad ram storage
+'
+'-------   User Scratchpad Locations open for use -------------
+'
+'
+'
+'-------   User Scratchpad Locations open for use -------------  '
+'
+SlotInfo    CON 127                    'contains the current running slot.
+'
+'location number 127 contains the number of the currently running program slot
+'
+'************* End of Scratchpad Ram Space difinations ****************
+'
+'**********************************************************************
+'----- MicroLab Pins and ports on the BS2p24 Defined for BIOS ------------
+'**********************************************************************
+internalscl       CON 0       'BS2p24 interal I2c buss
+internalsda       CON 1       'BS2p24 interal I2c buss
+cameraclk         CON 2       'Camera Clock
+cameramiso        CON 3       'Camera master in slave out
+cameramosi        CON 4       'Camera msater out slave in
+camerahold        CON 5       'Camera Hold
+masterin          PIN 6       'Serial Input fm master
+'masterin          CON 6       'Serial Input fm master
+masterout         CON 7       'Serial Output to master
+payloadsda        CON 8       'SDA on payload expansion board
+payloadscl        CON 9       'SCL on payload expansion board
+internawin        CON 10      'Local slave A to D, watchdog serial in
+internawout       CON 11      'Loacl slave A to D, watchdog serial out
+camerapower       CON 12      'Camera on and off for recycle
+votedead          CON 13      'AMicroLab vote that Master is dead
+payloadio14       CON 14      'I/O payload line
+cameraCS          CON 15      'camrea chip select pin
+'
+'
+'---------------- Bios System General constants --------------------
+'
+' Input terminal constants for test set to
+con_in       CON 16          'Pin 16 is BS2P serial in from RS232 connector
+con_baud     CON 240         'set to 9600 8bit true
+con_tout     CON 250         'time out waiting for terminal input appx 100ms
+'
+'----------------- Bios General constants ---------------------------
+'
+InternI2c          CON      0          'Internal I2C buss address control
+PLi2c              CON      8          'Payload I2c BUSS address control
+PCF8574address     CON      $40        'internal I2C buss address of PFC8574
+Ebankaddress       CON      $A0        'Address of 256k eerom memory
+Ebank0             CON      $00        'Ebank0 bank address 00000-0FFFF
+Ebank1             CON      $02        'Ebank1 bank address 10000-1FFFF
+Ebank2             CON      $04        'Ebank2 bank address 20000-2FFFF
+Ebank3             CON      $06        'Ebank3 bank address 30000-3FFFF
+'
+TextBuffer         CON      $C000      'Text buffer in bank 0,1, and 2
+'
+Camera320          CON      $05        'Camera Resolution 320X240
+Camera640          CON      $07        'Camera Resolution 640X480
+CameraNormal       CON      $02        'Camera Quality Normal
+CameraBetter       CON      $01        'Camera Quality Better
+CameraBest         CON      $00        'Camera Quality Best
+'
+Baud9600T CON $00F0  'Baudrate of 9600 no parity True
+Baud2400T CON $03FD  'Baudrate of 2400 no parity true
+'
+Ack       CON $5A                      'Acknowledge response to McMek
+TimeOut   CON 500                      'input command timeout is .5 seconds
+Pace      CON 1                        'pace of output from MicroLab to System terminal
+ETX       CON $03                      'End of Text command
+EOF       CON $FF                      'end of file marker
+'
+'------------ Bios System Error and event codes for logging --------------------
+'
+NoError       CON   0       'no error on return, all ok
+'
+'-----------------  Variables Same for all program Slots  ---------------
+'  Used By BIOS
+xcounter    VAR Word         'General use 16 bit counter
+TempWord    VAR Word         'General use Temp Word Register
+TempWord1   VAR Word         'General use Temp Word Register
+counter     VAR Byte         'General use 8 bit counter
+TempReg0    VAR Byte         'General use location for values during processes
+TempReg1    VAR Byte         'General use location for values during processes
+TempReg2    VAR Byte         'General use location for values during processes
+TempReg3    VAR Byte         'General use location for values during processes
+Sdata       VAR Byte         'data to send to uart
+text        VAR Byte(8)      'make array for text
+'
+'  Variables open for use by User (9 Bytes)and not touched by the BIOS
+'  Note: above BIOS Variables can/may be used by the user, however
+'  the value may be destroyed by a Call to the BIOS or BIOS operation
+'
+UserVar0    VAR Byte         'user Varible space - Should be same across all slots
+UserVar1    VAR Byte         'user Varible space - Should be same across all slots
+UserVar2    VAR Byte         'user Varible space - Should be same across all slots
+UserVar3    VAR Byte         'user Varible space - Should be same across all slots
+UserVar4    VAR Byte         'user Varible space - Should be same across all slots
+UserVar5    VAR Byte         'user Varible space - Should be same across all slots
+
+'
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' Calibration values must be calculated and writen through the test system write eeram
+' not automatically done, this is a one time event. Calibrate CPU temp, may be as
+' much as 60 degrees C off from the factory.
+'
+SysCalBank   CON   Ebank3   'Bank for system calibration
+SysCPUcal    CON   $C002    'External E2RAM calibration locations
+'
+'
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXX  >> End of Header Copy Entries  <<  XXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'
+'*************************************************************************
+'   Enter with TempReg1 containing the program index to run in this slot
+'*************************************************************************
+  '
+  #IF SaySlot = 1 #THEN
+  DEBUG " S5-V",DEC TempReg1,">>"
+  #ENDIF
+  BRANCH TempReg1,[SystemTest,         '0 Systems Test
+  photodumploop,                       '1 Vector to loop take photos
+  DoText,                              '2 vector to this program
+  HeaderReturn,                        '3 vector to this program
+  TestHeartbeatReturn,                 '4 vector for heartbeat test return
+  TakePhotoTestReturn,                 '5 vector test photo return to slot
+  McMekCommandReturn,                  '6 vector return from command vector
+  Ready1,                              '7 vector return from command vector
+  ReturnBack]                          '8 vector TO this program
+  '
+
+'*************************************************************************
+'   To Run program in another slot Set TempReg1 to the vector index of
+'   that program within the target slot then "RUN" that slot,  If a return
+'   to originating slot is desired then the return vector index must be stored
+'   in the VectorFromNum location in the scratch pad memory,  and the return
+'   slot is stored in the VectorFromSlot scratch pad memory.  Then a general
+'   routine can be used to return to the originating program.
+'*************************************************************************
+  '
+InSlot  CON    5               'Define this slot, each slot is numbered
+  '
+  '***********************************************************************
+  '       To go to a slot and set a return
+  'TempReg0 = Returning vector indes
+  'TempReg1 = vector index to run in next slot
+  'TempReg3 = the slot number to go to
+  '**********************************************************************
+  '
+GotoSlot:
+  PUT VectorFromNum,TempReg0     'this is the vector when returning back to this slot
+  PUT VectorFromSlot,InSlot      'To vector back to this Slot
+  RUN TempReg3
+  '
+  '
+  '***************************************************************************
+  'When returning back, Set TempReg1 to the return vector in the calling slot
+  'get the returning slot and RUN that slot
+  '***************************************************************************
+  '
+ReturnBack:
+  GET VectorFromNum,TempReg1     'fetch the vector to run when returning to calling slot
+  GET VectorFromSlot,TempReg0    'fetch the program slot where the routine was called
+  RUN TempReg0                   'RETURNback now....!!!!
+  '
+
+'************  HeartBeat for h command HeartBeat Test **************
+'
+TestHartBeat0:
+  TempReg0 = 4                   'return to system test
+  TempReg1 = 1                   'Hartbeat program 1
+  TempReg3 = 7                   'Heartbeat slot 7
+  GOTO GotoSlot
+
+'
+'
+'************  dump photo data to terminal and return to test entry **************
+'
+photodump:
+  TempReg0 = 0                   'return to system test
+  TempReg1 = 3                   'Vector d take photo and dump to terminial
+  TempReg3 = 7                   'slot to run
+  GOTO GotoSlot
+  '
+'
+'************  Test Dac in 7 **************
+'
+RestartProgram:
+  TempReg0 = 0                   'return to system test
+  TempReg1 = 0                   'Vector D to test dac writing
+  TempReg3 = 0                   'slot to run
+  GOTO GotoSlot
+  '
+'
+'************  dump photo data to terminal and return here to loop again **************
+'
+photodumploop:
+  GOSUB getTandH1
+waitfortime:
+  GOSUB getthetime
+  'test test test
+    IF TempReg0 <> 0 THEN GOTO waitfortime
+  'test test test
+  TempReg0 = 1                   'photodump to dump the photo
+  TempReg1 = 3                   'Vector d take photo and dump to terminial
+  TempReg3 = 7                   'slot to run
+  GOTO GotoSlot
+
+  '
+'*************  Test writing text in ee2cram with subroutine ************
+'  text return here
+'
+      '
+Dotext:
+  TempReg0 = 0    'TextReturn
+  TempReg1 = 1    'Run program in slot write text statememt
+  TempReg3 = 4    'slot to run
+  GOTO GotoSlot   'doit
+'
+'
+'
+TakePhoto:
+  TempReg0 = 0    'Index to vector to return in this slot TextReturn
+  TempReg1 = 1    'program to run in slot 6
+  TempReg3 = 6    'Take photo slot 6 program 1 vector 1
+  GOTO GotoSlot   'Execute a slot goto proceedure now doit
+
+'
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXX   Programs in this slot  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'
+
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXX   Systems Testing Programs  XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'
+SystemTest:
+  DEBUG CR,"SysTest5",CR  'Say hello
+  '
+LOOP1:
+  TempReg0 = 3    'TextReturn
+  TempReg1 = 0    'execute vector in slot
+  TempReg3 = 3    'slot to run
+  GOTO GotoSlot   'doit
+HeaderReturn:
+    '
+Ready:
+    DEBUG ">"
+Ready1:
+    SERIN con_in,con_baud,con_tout,inputtimeout,[TempReg0] 'get terminal input, timeout at 100ms
+      '
+      DEBUG CR
+    IF TempReg0 = "8" THEN TestPFC8574Input      'loop on reading the input of the chip and print until reset                 '
+    IF TempReg0 = "9" THEN TestPFC8574Output     'Count up on the 8 bits of the register                 '
+    IF TempReg0 = "b" THEN RestartProgram        'Go back to slot 0, to possibly run program?
+    IF TempReg0 = "k" THEN photodump             'dump photo
+    IF TempReg0 = "w" THEN Writeeeprom           'write a location in eeprom 0=>3FFF
+    IF TempReg0 = "r" THEN READeeprom            'read a location in eeprom 0=>3FFF range
+    IF TempReg0 = "d" THEN Dumpeeprom            'Dump a range of eeprom
+    IF TempReg0 = "L" THEN photodumploop         'loop taking photos
+    IF TempReg0 = "3" THEN Setres320             'set res to 320
+    IF TempReg0 = "6" THEN Setres640             'set res to 640
+    IF TempReg0 = "q" THEN SetQualitymode        'set quality mode
+    IF TempReg0 = "h" THEN getTandH              'get temperatuare and Humidity
+    IF TempReg0 = "s" THEN getstatus             'get status of slave
+    IF TempReg0 = "i" THEN gettime               'get time from slave
+    IF TempReg0 = "0" THEN SetTime               'set time
+    IF TempReg0 = "R" THEN DoText
+    IF TempReg0 = "I" THEN TakePhoto
+    IF TempReg0 = "-" THEN TemperatureTest
+    IF TempReg0 = "p" THEN TakePhototest             'Take a photo put in buffer then transfer
+
+    DEBUG CR,"I/O Error= ",(TempReg0),CR                 'incorrect key pushed
+    GOTO loop1
+inputtimeout:
+    IF masterin = 1 THEN GOTO Ready1 'nothing yet
+      '
+    TempReg0 = 7                   'Set to return vector in this slot McMekAttn1Return
+    TempReg1 = 0                   'Set to take the 0 vector in the branch table
+    TempReg3 = 6                   'Set to goto Slot 6
+    GOTO GotoSlot                  'go to McMek command interperature ----
+
+ '   GOTO Ready1
+
+'
+'************************************************************************
+'        ???????????????????????????????????????????????
+'************************************************************************
+'
+'********************************************************
+'  Take a Photo Proceedure, Place the return index vector number
+'  in TempReg0 so when photo is finish the program knows where
+'  to return back to...
+'********************************************************
+'
+TakePhototest:
+'    STORE DataStorage         'set to data storage bank
+'    READ Cstatus,TempReg0     'what is the state and status
+'    TempReg0 = TempReg0 & $0F 'only the lower nibble
+'    WRITE TempStatus,TempReg0 'Temp storage for test status routines
+
+  TempReg0 = 5    'Index to vector to return in this slot TakePhotoReturn
+  TempReg1 = 1    'program to run in slot 6
+  TempReg3 = 6    'Take photo slot 6 program 1 vector 1
+  GOTO GotoSlot    'Execute a slot goto proceedure now doit
+  '
+TakePhotoTestReturn:
+  GET MLabStatus,TempReg0           '
+  DEBUG HEX2 TempReg0,CR,"Waiting for Transfer",CR
+
+TestPhoto1:
+  '
+    IF masterin = 1 THEN GOTO Phototest1 'nothing yet
+      '
+    TempReg0 = 6                   'Set to return vector in this slot McMekAttn1Return
+    TempReg1 = 0                   'Set to take the 0 vector in the branch table
+    TempReg3 = 6                   'Set to goto Slot 6
+    GOTO GotoSlot                  'go to McMek command interperature ----
+
+
+McMekCommandReturn:                 'program will return here after processing command
+
+Phototest1:                         'here with no command or
+    GET MLabStatus,TempReg0         'to check if file was transfered to master
+    IF (TempReg0 & (B0Ready+B1Ready+B2Ready))> 0 THEN GOTO TestPhoto1 '
+
+'  STORE DataStorage                 'set to data storage bank
+'  READ Cstatus,TempReg0             'what is the state and status
+ ' TempReg0 = TempReg0 & $0F         'only the lower nibble
+'  IF TempReg0>0 THEN GOTO TakePhotoTestReturn
+'  READ TempStatus,TempReg1          'get entry value
+'  IF TempReg0 = TempReg1 THEN GOTO  TakePhotoTestReturn   'no upload yet
+  GOTO loop1
+'
+'********************************************************************************
+'---------- Test  PFC8574 I2C operation --------------------------
+'********************************************************************************
+'
+' The internal I2C Buss is Port0 and Port1
+'
+'
+'
+TestPFC8574Input:
+  TempReg0 = $ff                                      'disable the output pull down set to know value
+  I2COUT InternI2c, PCF8574address, [TempReg0]        'output this byte
+TestPFC8574Inputloop:
+'  PULSOUT votedead,5
+  I2CIN InternI2c, PCF8574address, [TempReg0]         'Get to whole byte
+  DEBUG HEX2 TempReg0, CR                             'display input value
+  '
+  SERIN con_in,con_baud,con_tout,TestPFC8574Inputloop,[TempReg0] 'get terminal input, timeout at 100ms
+  GOTO LOOP1
+'  GOTO TestPfc8574Inputloop                           'keep doing it until reset
+'
+'
+TestPFC8574Output:
+  TempReg0=$ff                                       'Set init state to led off
+TestPFC8574Outputloop:
+'  PULSOUT votedead,5                                 'sync pulse
+  I2COUT InternI2c, PCF8574address, [TempReg0]        'output this byte
+  TempReg0=TempReg0-1                                 'inc value on output
+  HIGH  payloadio14
+  IF TempReg0 > $80  THEN LOW payloadio14
+  SERIN con_in,con_baud,con_tout,TestPFC8574Outputloop,[TempReg0] 'get terminal input, timeout at 100ms
+  GOTO LOOP1
+'  GOTO TestPFC8574Outputloop                          'keep doing it until reset
+'
+'*******************************************
+'  TCN75A Test Temperature on Payload interface test board
+'*******************************************
+TCN75A        CON   $90  'Temperature
+TCN75A_Ta     CON   $00  'Temperature Register address
+TCN75A_config CON   $01  'Configuration Register address
+TCN75A_Hyst   CON   $02  'Hysteresis Register address
+TCN75A_Set    CON   $03  'Limit-set Register address
+'
+TemperatureTest:
+  '
+  I2COUT PLi2c, TCN75A, [TCN75A_config,$60]        'Point to Config Register and set for high res
+  PAUSE 250                                        'let reading settle
+  I2COUT PLi2c, TCN75A, [TCN75A_ta]                'Point to Temperature Register
+  I2CIN  PLi2c, TCN75A, [TempWord.HIGHBYTE,TempWord.LOWBYTE]  'get 16 bits of Temperature
+  DEBUG CR,DEC TempWord.HIGHBYTE,".",DEC1 ((TempWord.LOWBYTE/16)*625)/1000," Celsius  " 'read C and fraction
+  TempWord1 = (TempWord.HIGHBYTE*90)               'convert to F by C*9/5+32
+  xcounter = (((TempWord.LOWBYTE)/16)*90)/16       'C*9
+  TempWord1 = ((TempWord1+xcounter)/5)+320         '/5 +32
+  DEBUG DEC TempWord1/10,".",DEC TempWord1//10," Fahrenheit",CR 'Display value
+ '
+  GOTO loop1
+
+'
+'
+''
+'********************************************************************************
+'---------- Test EEprom for operation --------------------------
+'********************************************************************************
+     '
+'
+Dumpeeprom:
+    DEBUG CR,"ST"
+    GOSUB Getaddress                           'get the start address
+    IF TempReg0=$ff THEN GOTO Dumpeeprom       'address size error
+    xcounter=Tempword                          'TempReg2 is bank address and Tempword is lowaddress Start
+    TempReg3=TempReg2                          'TempReg3 now has bank positioned correctly Start
+    DEBUG CR,"END"
+    GOSUB Getaddress                           'get end address
+printaddress:
+    DEBUG CR,HEX2 (TempReg3>>1),HEX4 xcounter,"  "  'address this line
+getnextbyte:
+    I2CIN InternI2c, $A1 | TempReg3,xcounter.HIGHBYTE\xcounter.LOWBYTE,[TempReg0]
+    DEBUG HEX2 TempReg0," "
+'    I2COUT InternI2c, $A1 | TempReg3,xcounter.HIGHBYTE\xcounter.LOWBYTE,[$00]
+    xcounter = xcounter+1                                'nex address
+    IF xcounter = 0 THEN TempReg3=((TempReg3+2)& $06)       'inc bank and mask carry for wrap
+    IF xcounter = Tempword THEN GOTO testbank
+getnextbyte1:
+    IF (xcounter.LOWBYTE) & $0F = 0 THEN GOTO printaddress
+    GOTO getnextbyte
+testbank:
+    IF TempReg2<>TempReg3 THEN GOTO getnextbyte1
+    I2CIN InternI2c, $A1 | TempReg3,xcounter.HIGHBYTE\xcounter.LOWBYTE,[TempReg0]
+    DEBUG HEX2 TempReg0," "
+    GOTO  loop1
+'**************************************************************
+Writeeeprom:
+    GOSUB Getaddress                       'get address to write
+    IF TempReg0=$ff THEN GOTO Loop1        'ERROR in address
+    '
+    DEBUG "W= "
+    GOSUB GetconIn
+    TempReg1=Tempreg0 << 4
+    GOSUB GetconIn
+    TempReg0=TempReg0+TempReg1
+    '
+    DEBUG CR, HEX4 TempWord,"->", HEX2 TempReg0, CR
+    '
+    'now address eeprom
+    '
+    I2COUT InternI2c, $A0 | TempReg2,Tempword.HIGHBYTE\Tempword.LOWBYTE, [TempReg0]
+    PAUSE 10
+    GOTO loop1
+'**************************************************************
+READeeprom:
+    GOSUB Getaddress                        'get address to read
+    IF TempReg0=$ff THEN GOTO Loop1         'ERROR in address
+    '
+    ' now address eeprom
+    '
+    I2CIN InternI2c, $A1 | TempReg2,Tempword.HIGHBYTE\Tempword.LOWBYTE,[TempReg0]
+    DEBUG " = ", HEX2 TempReg0
+    GOTO Loop1
+
+'*************
+'  XX XXXXXXXX XXXXXXXX
+' Returns with Tempword = low 16 bits of address
+'              Tempreg2 = positioned 3 bits of bank address
+'*************
+Getaddress:
+    Tempword = 0
+    DEBUG "A="                       'get input and convert hex to in temp word
+    GOSUB GetconIn                   'to get two high bits
+    IF TempReg0 > 3 THEN DEBUG "?",CR:TempReg0=$FF:RETURN
+    TempReg2=TempReg0<<1                   'TempReg2 = 1 of 4 banks and in position
+    GOSUB GETconIn
+    Tempword = Tempword +  (TempReg0*16*256)
+    GOSUB GetconIn
+    TempWord = Tempword + (TempReg0*256)
+    GOSUB GetconIn
+    TempWord = Tempword + (TempReg0*16)
+    GOSUB GetconIn
+    TempWord = Tempword + (TempReg0)
+    RETURN
+
+GETconIn:
+    SERIN con_in,con_baud,con_tout,GETconIn, [TempReg0]             'get terminal input
+A2H:
+    IF TempReg0 < ":" THEN GOTO A2H1
+    TempReg0 = TempReg0+9                'add offset from "A" TO decode as 1010 OR 10 base 10
+A2H1:
+    TempReg0 = TempReg0 & $0F            'FOR 0 through 9
+    RETURN
+    '
+    '
+'********************************************************************
+'  Set Resolution and Quality
+' Enter TempReg2 = has value for res of quality
+'  return with scratchpad set
+'********************************************************************
+'
+'
+Setres640:                      'set res mode 640 $07
+    PUT CameraRes,Camera640     'Resolution
+    GOTO loop1                  'set it
+Setres320:                      'set res mode $05=320
+    PUT CameraRes,Camera320     'Resolution
+    GOTO loop1                  '
+
+'
+SetQualitymode:                        'set quality mode $00=Best $01=Better $02=Normal
+    DEBUG CR,"0=Bst,1=B,2=N"
+    DEBUGIN TempReg2
+    TempReg2=TempReg2 & $03            'remove ascii data
+    PUT CameraQua,TempReg2             'set quality
+    GOTO loop1
+    '
+'*******************************************************************
+'   getTandH
+'  Get Temperature and Humidity and other analog inputs from slave and
+'  place it in memory then sent that memory information to the Terminial
+'  for debuging purposes
+'
+'*******************************************************************
+
+'
+getTandH:
+    '
+    GOTO TestHartBeat0
+TestHeartbeatReturn:
+    '
+    DEBUG "HB",CR
+    '
+    GOSUB getTandH1
+    GOTO loop1
+    '
+getTandH1:
+    'LOW internawout            'Set the line low to request a data frame from the slave
+''    SEROUT internawout,Baud2400T,[$01]
+''    SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0]
+''   PUT SlaveErr,TempReg0
+    '
+''    TempReg2 = AmbTemperature  'point TempReg2 at low byte of AmbTemperature
+''    FOR TempReg2 = AmbTemperature TO AmbTemperature+15
+''    PULSOUT votedead,10
+''    SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0] 'get the byte from the input
+    'PULSOUT internawout,10
+    'SEROUT internawout,Baud2400T,[TempReg0]
+''    PULSOUT votedead,10                                 'for test
+''    HIGH internawout                                    'reset request data flag
+''    PUT TempReg2,TempReg0                               'put value into scratchpad ram
+    'DEBUG HEX2 TempReg0," ",HEX2 TempReg2, CR
+    'SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0]
+    'SEROUT internawout,Baud2400T,[TempReg0]
+    'PULSOUT votedead,10                                 'for test
+    'TempReg2=TempReg2+1                                 'point to next location in scratchpad
+    'PUT TempReg2,TempReg0                               'put high value into scratchpad
+''    NEXT
+    '
+    'GET AmbTemperature, TempReg0
+    'TempWord = $FFFF & TempReg0
+    'GET AmbTemperature+1, TempReg0
+    'TempWord = TempWord & (TempReg0 << 8)
+
+'    GET SlaveErr,TempReg0                         'get the slave err byte
+'    DEBUG "err= ",HEX4 (TempReg0),CR
+
+    GET AmbTemperature,TempReg0                         'get the temp
+    GET AmbTemperature+1,TempReg1                         'get the temp
+    DEBUG "Tem= ",HEX4 (TempReg0 + (TempReg1*256)),"-",DEC (((TempReg0 + (TempReg1*256))*64)/52),"C - ",DEC ((((((TempReg0 + (TempReg1*256))*64)/52)+400)*9)/5)-400,"F",CR 'convert to centergrade
+
+    GET AmbHumidity,TempReg0                         'get the humid
+    GET AmbHumidity+1,TempReg1                         'get the humid
+    DEBUG "Hum= ",HEX4 (TempReg0 + (TempReg1*256)),"-",DEC (((TempReg0 + (TempReg1*256))*10)-2048)/86,CR 'convert to centergrade
+
+    GET A2Dchannel0,TempReg0
+    GET A2Dchannel0+1,TempReg1
+    DEBUG "A0-3= ",HEX4 (TempReg0 + (TempReg1*256)),", "
+
+    GET A2Dchannel1,TempReg0
+    GET A2Dchannel1+1,TempReg1
+    DEBUG HEX4 (TempReg0 + (TempReg1*256)),", "
+
+    GET A2Dchannel2,TempReg0
+    GET A2Dchannel2+1,TempReg1
+    DEBUG HEX4 (TempReg0 + (TempReg1*256)),", "
+
+    GET A2Dchannel3,TempReg0
+    GET A2Dchannel3+1,TempReg1
+    DEBUG HEX4 (TempReg0 + (TempReg1*256)),CR
+
+    GET InternTemp,TempReg0
+    GET InternTemp+1,TempReg1
+    DEBUG "STem= ",HEX4 (TempReg0 + (TempReg1*256)),"-",DEC (((TempReg0 + (TempReg1*256))-397)*250)/355,"C - ",DEC (((((((TempReg0 + (TempReg1*256))-397)*250)/355)+40)*9)/5)-40,"F",CR
+
+    GET VCCby2,TempReg0
+    GET VCCby2+1,TempReg1
+    DEBUG "V/2= ",HEX4 (TempReg0 + (TempReg1*256)),"-",DEC ((((TempReg0 + (TempReg1*256))/2)*25)/5),"mv",CR
+
+    RETURN
+
+    '
+NoSlave:         'slave did not respond to request to send data
+   DEBUG CR,"S TO",CR   'Slave Timeout
+   HIGH internawout    'reset send
+   RETURN
+
+'*****************************************************
+'  Get Status of slave
+'*****************************************************
+'
+getstatus:
+    SEROUT internawout,Baud2400T,[$02]    'send get status command
+    GOSUB gstat           'get status byte
+    '
+    GET SlaveErr,TempReg0  ' to output the error status
+    DEBUG "err= ",HEX4 (TempReg0),CR
+    '
+    GOTO loop1
+    '
+gstat:                    'subroutine to get status byte from slave
+   SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0]
+   PUT SlaveErr,TempReg0
+   RETURN
+
+'*****************************************************
+'   Get time from slave
+'*****************************************************
+'
+ gettime:
+    GOSUB getthetime
+    GOTO loop1
+    '
+getthetime:
+    SEROUT internawout,Baud2400T,[$03]    'send gettime
+'
+    GOSUB gstat        'get the status byte from the slave
+    '
+'    SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0]  'get lsb of time
+'    PUT mission0,TempReg0
+
+'    TempReg2 = mission0  'point TempReg2 at low byte of MissionTime
+'    FOR TempReg2 = Mission0 TO Mission0+3   'end to time counter
+'    PULSOUT votedead,10
+'    SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0] 'get the byte from the input
+'    PULSOUT votedead,10                                 'for test
+'
+    SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0] 'get the byte from the input
+    PUT RTCsec,TempReg0
+    SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0] 'get the byte from the input
+    PUT RTCmin,TempReg0
+    SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0] 'get the byte from the input
+    PUT RTChour,TempReg0
+    SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0] 'get the byte from the input
+    PUT RTCday,TempReg0
+    SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0] 'get the byte from the input
+    PUT RTCmonth,TempReg0
+    SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0] 'get the byte from the input
+    PUT  RTCyear,TempReg0
+    '
+    SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0] '1228 get the byte from the input
+    PUT  sMissionsec,TempReg0                           'get po sec
+    SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0] '1228 get the byte from the input
+    PUT  sMissionmin,TempReg0                           'get po min
+    SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0] '1228 get the byte from the input
+    PUT  sMissionhour,TempReg0                           'get po hour
+    SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0] '1228 get the byte from the input
+    PUT  sMissionday,TempReg0                           'get po day
+    '
+'    HIGH internawout
+    '
+    STORE DataStorage
+    GET sMissionsec,TempReg0                             '1228 move to e2 to save
+    WRITE Missionsec,TempReg0                           '1228
+    PAUSE 5
+    GET sMissionmin,TempReg0                             '1228 move to e2 to save
+    WRITE Missionmin,TempReg0                           '1228
+    PAUSE 5
+    GET sMissionhour,TempReg0                             '1228 move to e2 to save
+    WRITE Missionhour,TempReg0                           '1228
+    PAUSE 5
+    GET sMissionday,TempReg0                             '1228 move to e2 to save
+    WRITE Missionday,TempReg0                           '1228
+    PAUSE 5
+
+                                        'reset request data flag
+'    PUT TempReg2,TempReg0                               'put value into scratchpad ram
+'    NEXT
+'Echo test
+'
+'    TempReg0=RTCmonth                        '
+'    SEROUT Masterout,Baud2400T,[TempReg0,"/"]     'OUTPUT THE BYTE
+ '   TempReg0=RTCday
+'    SEROUT Masterout,Baud2400T,[TempReg0,"/"]     'OUTPUT THE BYTE
+'    TempReg0=RTCyear
+'    SEROUT Masterout,Baud2400T,[TempReg0,"  "]    'OUTPUT THE BYTE
+'    TempReg0=RTChour
+'    SEROUT Masterout,Baud2400T,[TempReg0,":"]    'OUTPUT THE BYTE
+'    TempReg0=RTCmin
+'    SEROUT Masterout,Baud2400T,[TempReg0,":"]    'OUTPUT THE BYTE
+'    TempReg0=RTCsec
+'    SEROUT Masterout,Baud2400T,[TempReg0,CR]    'OUTPUT THE BYTE
+
+    GET RTCmonth,TempReg0
+    DEBUG CR,DEC TempReg0,"/"
+    GET RTCday,TempReg0
+    DEBUG DEC TempReg0,"/"
+    GET RTCyear,TempReg0
+    DEBUG DEC TempReg0,"   "
+    GET RTChour,TempReg0
+    DEBUG DEC TempReg0,":"
+    GET RTCmin,TempReg0
+    DEBUG DEC TempReg0,":"
+    GET RTCsec,TempReg0
+    DEBUG DEC TempReg0,CR
+
+'    NEXT
+
+   '
+'    GET SlaveErr,TempReg0                         'get the slave err byte
+'    DEBUG "err= ",HEX4 (TempReg0),CR
+   '
+'   GET RTC_month,TempReg3                         'get the slave err byte
+'   DEBUG "t=",HEX2 (TempReg3)
+'   GET Mission2,TempReg2
+'   DEBUG HEX2 (TempReg2)
+'   GET Mission1,TempReg1
+'   DEBUG HEX2 (TempReg1)
+ '  GET Mission0,TempReg0
+'   DEBUG HEX2 (TempReg0)
+'   DEBUG " = ", DEC ((TempReg0)+(TempReg1*256)+(TempReg2*256*256)+(TempReg3*256*256*256))
+'   DEBUG " - ",DEC ((TempReg0)+(TempReg1*256))/60," MIN ", DEC ((TempReg0)+(TempReg1*256))//60,"sec",CR
+   RETURN
+   '
+'*****************************************************
+'  Set Time
+'*****************************************************
+'
+Settime:
+ '   SEROUT internawout,Baud2400T,[$5A]    'send SetTime command
+ '   GOSUB gstat        'get the status byte from the slave
+    '
+    TempReg0=1
+    FOR TempWord = RTCsec TO RTCyear   '
+    PUT TempWord,TempReg0              'get time from scratchpad
+    NEXT
+    '
+ '   PUT RTCsec,0         'set to fixed values just for test
+ '   PUT RTCmin,0
+ '   PUT RTChour,0
+ '   PUT RTCday,13
+ '   PUT RTCmonth,7
+ '   PUT RTCyear,13
+    '
+    SEROUT internawout,Baud2400T,[$5A]    'send SetTime command
+    GOSUB gstat                           'get the status byte from the slave
+    '
+    FOR TempWord = RTCsec TO RTCyear   '
+    PAUSE 5
+    GET TempWord,TempReg0              'get time from scratchpad
+    DEBUG "<",HEX4 TempWord,">",DEC2 TempReg0,CR          'output fetched value
+    SEROUT internawout,Baud2400T,[TempReg0]    'send "0" to reset the time
+    NEXT
+    '
+    DEBUG CR
+    '
+    STORE DataStorage
+    FOR TempWord = Missionsec TO Missionday '1228 set power on that was stored in stamp
+    PAUSE 10
+    READ TempWord,TempReg0                  'get the value from memory
+    DEBUG "<",HEX4 TempWord,">",DEC2 TempReg0,CR          'output fetched value
+    SEROUT internawout,Baud2400T,[TempReg0] 'send it to the slave
+    NEXT
+    GOTO loop1
+    '

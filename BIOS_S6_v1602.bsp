@@ -1,0 +1,965 @@
+' {$STAMP BS2P}
+' {$PBASIC 2.5}
+' {$PORT COM3}
+
+
+version  CON 1602
+
+'**********************
+'   Slot 6
+'**********************
+
+'
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXX >>  Start Here to Copy Header entries  <<  XXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'
+                       'S0 contains the timing loop
+                       'S2 contains the event table AND actions.
+                       'S1 contains test code placeholder
+'
+' 2012
+' 1. added test for payload interface boards
+' 2. clean slot 0, added time 0,1,2 for clock speed
+'
+'******************  Start of System Global lables *******************
+'     Conditional Assemblies
+'
+#DEFINE FlyConfig = 0              '1=Set to Flight Configuration, 0=Test Configuration
+#DEFINE fastclock = 0              '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
+#DEFINE testreset = 1              '1=test reset and reset count
+#DEFINE SaySlot   = 1              '1=Say Slot with vector
+#DEFINE Sayit = 1                  '1=Say what is happening
+#DEFINE nodebug = 1                '1= nodebug outputs
+#DEFINE MasterEnabled = 1          '1= enable checking for master input
+'
+'
+'***************************************************************************************
+'********* EEPROM Data Storage Area ****************************************************
+'Start storage at top of slot6 and work downwards, code can go in slot 4, but be carful
+'not to overwrite the data storage.  Programs go from botton to top, Data storage, and
+'our data storage allocations are from the top down.  MUST BE CHECKED MANUALLY, program
+'does not know any better.
+'***************************************************************************************
+'
+DataStorage    CON 4                'EEROM data is storaged in Slot 4
+'
+'
+'Data storage is defined at the end of this slot (slot 4), the spaces and address must match up with
+'the lables defined here which will be used across all slots, be careful in defining this
+'
+Cstatus             CON 0                    '00 See data at data storage area
+TestNumber          CON Cstatus+1            'Test Sequence Counter  1112
+ResetNumber         CON TestNumber+2         '00 Number of times reset sence downloaded
+IDcodefile          CON ResetNumber+1        'MicroLab alpha ID  2 ascii values
+LastPhoto           CON IDcodefile+2         '00000 Photo number  5 ascii values
+LastBKupload        CON LastPhoto+5          'Number of the last command file uploaded
+NextBktoLoad        CON LastBKupload+1       'NextBktoLoad       next bank to load
+LastuploadCommand   CON NextBktoLoad+1       'LastuploadCommand   Number of the last command file uploaded
+Missionsec          CON LastuploadCommand+2  'Missionsec          clock sec count here 0-59
+Missionmin          CON Missionsec+1         'Missionmin          clock min count here 0-59
+Missionhour         CON Missionmin+1         'Missionhour         lock hour count here 0-23
+Missionday          CON Missionhour+1        'Missionday          lock day count here 0-xx
+TempStatus          CON Missionday+1         'Temp storage for test status routines
+'
+'     'ETC....
+'
+'**********************************************************************
+'******** Scrathpad Ram Defined Ram location across all slots *********
+'**********************************************************************
+'
+ScratchRam     CON 0                  'start of Scratch ram locations bytes
+'
+'----- Bios and User Scratch pad memory locations -----------------------------
+'
+Resetverify    CON ScratchRam         'location is 0 on Power on Reset or not Zero for slot return
+VectorFromSlot CON Resetverify+1      'Slot to return to - who called the program vector
+VectorFromNum  CON VectorFromSlot+1   'From Vector number within slot place to Return to
+SlotErrReturn  CON VectorFromNum+1    'Error code return from Slot program run
+'
+sMissionday     CON SlotErrReturn+1     'BIOS Mission clock day count here 0-xx
+sMissionhour    CON sMissionday+1       'BIOS Mission clock hour count here 0-23
+sMissionmin     CON sMissionhour+1      'BIOS Mission clock min count here 0-59
+sMissionsec     CON sMissionmin+1       'BIOS Mission clock sec count here 0-59
+'
+'---------- Bios provided data for user -----------------------------------------
+'
+RTCsec         CON sMissionsec+1      'BIOS Real Time clock sec count here 0-59
+RTCmin         CON RTCsec+1           'BIOS Real Time clock min count here 0- 59
+RTChour        CON RTCmin+1           'BIOS Real Time Clock hour count here 0-23
+RTCday         CON RTChour+1          'BIOS Real Time clock day count here 1-31
+RTCmonth       CON RTCday+1           'BIOS Real Time clock month count here 1-12
+RTCyear        CON RTCmonth+1         'BIOS Real Time clock year count here 0-99
+'
+AmbTemperature     CON  RTCyear+1             'BIOS Ambient temperature in celcius (8 low bits of 10 bits)
+AmbTemperaturehigh CON  AmbTemperature+1      'BIOS Ambient temperature in celcius (2 high bits of 10 bits)
+AmbHumidity        CON  AmbTemperaturehigh+1  'BIOS Ambient Humidity  (8 low bits of 10 bits)
+AmbHumidityhigh    CON  AmbHumidity+1         'BIOS Ambient Humidity  (2 high bits of 10 bits)
+'
+A2Dchannel0        CON  AmbHumidityhigh+1     'BIOS Analog channel 0, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel0high    CON  A2Dchannel0+1         'BIOS Analog channel 0, (2 bits 0f 0v to 2.5v low-> high)
+A2Dchannel1        CON  A2Dchannel0high+1     'BIOS Analog channel 1, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel1high    CON  A2Dchannel1+1         'BIOS Analog channel 1, (2 bits 0f 0v to 2.5v low-> high)
+A2Dchannel2        CON  A2Dchannel1high+1     'BIOS Analog channel 2, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel2high    CON  A2Dchannel2+1         'BIOS Analog channel 2, (2 bits 0f 0v to 2.5v low-> high)
+A2Dchannel3        CON  A2Dchannel2high+1     'BIOS Analog channel 3, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel3high    CON  A2Dchannel3+1         'BIOS Analog channel 3, (2 bits 0f 0v to 2.5v low-> high)
+InternTemp         CON  A2Dchannel3high+1     'Bios internal temp of msp430- Needs Calibration
+InternTemphigh     CON  InternTemp+1          'Bios internal temp of msp430- Needs Calibration
+VCCby2             CON  InternTemphigh+1      'Bios VCC/2 for calabration - Regulator check
+VCCby2high         CON  VCCby2+1              'Bios VCC/2 for calabration - Regulator check
+'
+'----------- Bios Reserved working registers ----------------------------------------
+'
+CameraRes       CON  VCCby2high+1     'Name this Bios Register (camera Resolution 320 $05 640 $07)
+CameraQua       CON  CameraRes+1      'Name this Bios Register (Camera quality $02 normal, $01 Better, $00 Best)
+SlaveErr        CON  CameraQua+1      'slave MSP430 status byte (Local Slave Status)
+ActiveBank      CON  SlaveErr+1       'Name this Bios Register (Active bank)
+TextPointer     CON ActiveBank+1      'Name 16 bit pointer to text in active bank
+'
+'MicroLab Bios Status Byte given to Master on Status Request
+'  Location and Bits defined
+'
+MLabStatus     CON  TextPointer+2     'Current Status of MicroLab
+HighPower      CON  $80               '  Bit 7=high power request
+ExComplete     CON  $40               '  Bit 6 = execution of upload command completed
+                                      '  Bit 5,4,3, don't care
+B2ready        CON  $04               '  Bit 2 = bank 2 ready for upload
+B1ready        CON  $02               '  Bit 1 = bank 1 ready for upload
+B0ready        CON  $01               '  Bit 0 = bank 0 ready for upload
+'
+'MicroLab Power Status Registers
+'                                      '
+PowerStatus    CON  MLabStatus+1      'Power control value
+P300ma         CON  $80               'enable high power 300ma mode
+P75ma          CON  $40               'set to 75ma power usage
+P50ma          CON  $20               'set to low power 50ma
+P100ma         CON  $00               'default value of power 100ma
+'
+'Reserved Bios Working Registers
+'
+BiosWord0      CON  PowerStatus+1     'BIOS Reserved Word for Bios operations
+BiosWord0h     CON  BiosWord0+1       '
+BiosWord1      CON  BiosWord0h+1      'BIOS Reserved Word for Bios operations
+BiosWord1h     CON  BiosWord1+1       '
+BiosWord2      CON  BiosWord1h+1      'BIOS Reserved Word for Bios operations
+BiosWord2h     CON  BiosWord2+1       'BIOS Reserved Word for Bios operations
+BiosWord3      CON  BiosWord2h+1      'BIOS Reserved Word for Bios operations
+BiosWord3h     CON  BiosWord3+1       'BIOS Reserved Word for Bios operations
+'
+'-----------General Purpose registers across Slots--------------------------------------
+'
+scr_Register0  CON BiosWord3h+1       'General use Scratchpad Ram location across all slots
+scr_Register1  CON scr_Register0+1    'General use Scratchpad Ram location across all slots
+scr_Register2  CON scr_Register1+1    'General use Scratchpad Ram location across all slots
+scr_Register3  CON scr_Register2+1    'General use Scratchpad Ram location across all slots
+scr_Register4  CON scr_Register3+1    'General use Scratchpad Ram location across all slots
+scr_Register5  CON scr_Register4+1    'General use Scratchpad Ram location across all slots
+scr_Register6  CON scr_Register5+1    'General use Scratchpad Ram location across all slots
+scr_Register7  CON scr_Register6+1    'General use Scratchpad Ram location across all slots
+'
+'--------- Location for Saved User Variables -----------------------------------------
+'
+Reg0low    CON       scr_Register7+1   'Storage of user variables during Bios operations
+Reg0high   CON       Reg0low+1         'Storage of user variables during Bios operations
+Reg1low    CON       Reg0high+1        'Storage of user variables during Bios operations
+Reg1high   CON       Reg1low+1         'Storage of user variables during Bios operations
+Reg2low    CON       Reg1high+1        'Storage of user variables during Bios operations
+Reg2high   CON       Reg2low+1         'Storage of user variables during Bios operations
+Reg3low    CON       Reg2high+1        'Storage of user variables during Bios operations
+Reg3high   CON       Reg3low+1         'Storage of user variables during Bios operations
+Reg4low    CON       Reg3high+1        'Storage of user variables during Bios operations
+Reg4high   CON       Reg4low+1         'Storage of user variables during Bios operations
+Reg5low    CON       Reg4high+1        'Storage of user variables during Bios operations
+Reg5high   CON       Reg5low+1         'Storage of user variables during Bios operations
+Reg6low    CON       Reg5high+1        'Storage of user variables during Bios operations
+Reg6high   CON       Reg6low+1         'Storage of user variables during Bios operations
+Reg7low    CON       Reg6high+1        'Storage of user variables during Bios operations
+Reg7high   CON       Reg7low+1         'Storage of user variables during Bios operations
+Reg8low    CON       Reg7high+1        'Storage of user variables during Bios operations
+Reg8high   CON       Reg8low+1         'Storage of user variables during Bios operations
+Reg9low    CON       Reg8high+1        'Storage of user variables during Bios operations
+Reg9high   CON       Reg9low+1         'Storage of user variables during Bios operations
+Reg10low   CON       Reg9high+1         'Storage of user variables during Bios operations
+Reg10high  CON       Reg10low+1         'Storage of user variables during Bios operations
+Reg11low   CON       Reg10high+1        'Storage of user variables during Bios operations
+Reg11high  CON       Reg11low+1         'Storage of user variables during Bios operations
+Reg12low   CON       Reg11high+1        'Storage of user variables during Bios operations
+Reg12high  CON       Reg12low+1         'Storage of user variables during Bios operations
+'
+'
+MoprClk0  CON        Reg12high+1        'Mission Operations Clock0, fail safe operations
+MoprClk1  CON        MoprClk0+2         'Mission Operations Clock1, fail safe operations
+MoprClk2  CON        MoprClk1+2         'Mission Operations Clock1, fail safe operations
+MoprClk3  CON        MoprClk2+2         'Mission Operations Clock1, fail safe operations
+'
+'
+NextAvailiable CON MoprClk3+2          'Next Availiable location for scratch pad ram storage
+'
+'-------   User Scratchpad Locations open for use -------------
+'
+'
+'
+'-------   User Scratchpad Locations open for use -------------  '
+'
+SlotInfo    CON 127                    'contains the current running slot.
+'
+'location number 127 contains the number of the currently running program slot
+'
+'************* End of Scratchpad Ram Space difinations ****************
+'
+'**********************************************************************
+'----- MicroLab Pins and ports on the BS2p24 Defined for BIOS ------------
+'**********************************************************************
+internalscl       CON 0       'BS2p24 interal I2c buss
+internalsda       CON 1       'BS2p24 interal I2c buss
+cameraclk         CON 2       'Camera Clock
+cameramiso        CON 3       'Camera master in slave out
+cameramosi        CON 4       'Camera msater out slave in
+camerahold        CON 5       'Camera Hold
+masterin          PIN 6       'Serial Input fm master
+'masterin          CON 6       'Serial Input fm master
+masterout         CON 7       'Serial Output to master
+payloadsda        CON 8       'SDA on payload expansion board
+payloadscl        CON 9       'SCL on payload expansion board
+internawin        CON 10      'Local slave A to D, watchdog serial in
+internawout       CON 11      'Loacl slave A to D, watchdog serial out
+camerapower       CON 12      'Camera on and off for recycle
+votedead          CON 13      'AMicroLab vote that Master is dead
+payloadio14       CON 14      'I/O payload line
+cameraCS          CON 15      'camrea chip select pin
+'
+'
+'---------------- Bios System General constants --------------------
+'
+' Input terminal constants for test set to
+con_in       CON 16          'Pin 16 is BS2P serial in from RS232 connector
+con_baud     CON 240         'set to 9600 8bit true
+con_tout     CON 250         'time out waiting for terminal input appx 100ms
+'
+'----------------- Bios General constants ---------------------------
+'
+InternI2c          CON      0          'Internal I2C buss address control
+PLi2c              CON      8          'Payload I2c BUSS address control
+PCF8574address     CON      $40        'internal I2C buss address of PFC8574
+Ebankaddress       CON      $A0        'Address of 256k eerom memory
+Ebank0             CON      $00        'Ebank0 bank address 00000-0FFFF
+Ebank1             CON      $02        'Ebank1 bank address 10000-1FFFF
+Ebank2             CON      $04        'Ebank2 bank address 20000-2FFFF
+Ebank3             CON      $06        'Ebank3 bank address 30000-3FFFF
+'
+TextBuffer         CON      $C000      'Text buffer in bank 0,1, and 2
+'
+Camera320          CON      $05        'Camera Resolution 320X240
+Camera640          CON      $07        'Camera Resolution 640X480
+CameraNormal       CON      $02        'Camera Quality Normal
+CameraBetter       CON      $01        'Camera Quality Better
+CameraBest         CON      $00        'Camera Quality Best
+'
+Baud9600T CON $00F0  'Baudrate of 9600 no parity True
+Baud2400T CON $03FD  'Baudrate of 2400 no parity true
+'
+Ack       CON $5A                      'Acknowledge response to McMek
+TimeOut   CON 500                      'input command timeout is .5 seconds
+Pace      CON 1                        'pace of output from MicroLab to System terminal
+ETX       CON $03                      'End of Text command
+EOF       CON $FF                      'end of file marker
+'
+'------------ Bios System Error and event codes for logging --------------------
+'
+NoError       CON   0       'no error on return, all ok
+'
+'-----------------  Variables Same for all program Slots  ---------------
+'  Used By BIOS
+xcounter    VAR Word         'General use 16 bit counter
+TempWord    VAR Word         'General use Temp Word Register
+TempWord1   VAR Word         'General use Temp Word Register
+counter     VAR Byte         'General use 8 bit counter
+TempReg0    VAR Byte         'General use location for values during processes
+TempReg1    VAR Byte         'General use location for values during processes
+TempReg2    VAR Byte         'General use location for values during processes
+TempReg3    VAR Byte         'General use location for values during processes
+Sdata       VAR Byte         'data to send to uart
+text        VAR Byte(8)      'make array for text
+'
+'  Variables open for use by User (9 Bytes)and not touched by the BIOS
+'  Note: above BIOS Variables can/may be used by the user, however
+'  the value may be destroyed by a Call to the BIOS or BIOS operation
+'
+UserVar0    VAR Byte         'user Varible space - Should be same across all slots
+UserVar1    VAR Byte         'user Varible space - Should be same across all slots
+UserVar2    VAR Byte         'user Varible space - Should be same across all slots
+UserVar3    VAR Byte         'user Varible space - Should be same across all slots
+UserVar4    VAR Byte         'user Varible space - Should be same across all slots
+UserVar5    VAR Byte         'user Varible space - Should be same across all slots
+
+'
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' Calibration values must be calculated and writen through the test system write eeram
+' not automatically done, this is a one time event. Calibrate CPU temp, may be as
+' much as 60 degrees C off from the factory.
+'
+SysCalBank   CON   Ebank3   'Bank for system calibration
+SysCPUcal    CON   $C002    'External E2RAM calibration locations
+'
+'
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXX  >> End of Header Copy Entries  <<  XXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'
+'*************************************************************************
+'   Enter with TempReg1 containing the program index to run in this slot
+'*************************************************************************
+  '
+  #IF SaySlot = 1 #THEN
+  DEBUG " S6-V",DEC TempReg1
+  #ENDIF
+  BRANCH TempReg1,[McMekcommand,       '0 vector flight condition setup override
+  TakePhoto,                           '1 after chamber (different return than 2)
+  TakePhoto,                           '2 before chanber (different return than 1)
+  HeartBeat1Return]                    '3 Return from heartbeat during photostore
+   '
+
+'*************************************************************************
+'   To Run program in another slot Set TempReg1 to the vector index of
+'   that program within the target slot then "RUN" that slot,  If a return
+'   to originating slot is desired then the return vector index must be stored
+'   in the VectorFromNum location in the scratch pad memory,  and the return
+'   slot is stored in the VectorFromSlot scratch pad memory.  Then a general
+'   routine can be used to return to the originating program.
+'*************************************************************************
+  '
+InSlot  CON   6               'Define this slot, each slot is numbered
+  '
+  '***********************************************************************
+  '       To go to a slot and set a return
+  'TempReg0 = Returning vector indes
+  'TempReg1 = vector index to run in next slot
+  'TempReg3 = the slot number to go to
+  '**********************************************************************
+  '
+GotoSlot:
+  PUT VectorFromNum,TempReg0     'this is the vector when returning back to this slot
+  PUT VectorFromSlot,InSlot      'To vector back to this Slot
+  RUN TempReg3
+  '
+  '***************************************************************************
+  'When returning back, Set TempReg1 to the return vector in the calling slot
+  'get the returning slot and RUN that slot
+  '***************************************************************************
+  '
+ReturnBack:
+  GET VectorFromNum,TempReg1     'fetch the vector to run when returning to calling slot
+  GET VectorFromSlot,TempReg0    'fetch the program slot where the routine was called
+  RUN TempReg0                   'RETURNback now....!!!!
+  '
+'*************************
+'  HeartBeat during photo store
+'*************************
+  '
+HeartBeat1:            '         'forced because slot level to much
+  TempReg1 = 4                   'program 4 is heartbeat in 7
+  RUN 7                          'slot to run
+  '
+DownLoadfile:                    'direct jump to slot 7 to download
+  TempReg1 = 5                   'program 5 is download from McMek
+  RUN 7                          'doit
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXX   Programs in this slot  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+'***************************************************************************
+'   McMek command processor
+' enter with TempReg2 = to the command after Ack is sent as response
+'
+'***************************************************************************
+'
+McMekcommand:
+  '
+  'simulate the master controller inputs to the command processer
+  '
+    DEBUG " CP-"
+    SEROUT masterout,Baud9600T,[Ack]  'Send Acknowledge command to McMek I'm ready to receive
+'    DEBUG "s ACK",CR   'if sent may be to much time. if command is comming from McMek master
+    SERIN masterin ,Baud9600T,1000 ,noinput,[TempReg2]'Wait for request/command from McMek,wait .5 sec for response
+    DEBUG HEX2 TempReg2
+    '
+    '
+    '
+    IF TempReg2 = $11 THEN GOTO GetMLID           'send MicroLab ID
+    IF TempReg2 = $12 THEN GOTO DownLoadfile      'download a file from master to microlab
+    IF TempReg2 = $10 THEN GOTO Statusback        'send status to master
+    IF TempReg2 = Ack THEN GOTO Ackback           'respond with Ack
+    IF TempReg2 = $55 THEN GOTO Syncback          'lets sync it together
+    IF TempReg2 = $14 THEN GOTO settim            'set the time on MicroLab
+    IF TempReg2 = $15 THEN GOTO UpLoadB0          'upload bank 0 data
+    IF TempReg2 = $16 THEN GOTO UpLoadB1          'upload bank 1 data
+    IF TempReg2 = $17 THEN GOTO UpLoadB2          'upload bank 2 data
+    IF TempReg2 = $20 THEN GOTO SetP300           'set power to 300ma mode
+    IF TempReg2 = $21 THEN GOTO SetP100           'set power to 100ma power mode
+    IF TempReg2 = $22 THEN GOTO SetP75            'set power to 75ma power mode
+    IF TempReg2 = $23 THEN GOTO SetP50            'set power to 50ma power mode
+
+    '
+noinput:
+    SEROUT masterout,Baud9600T,pace,[$ff]         'Time out or ERROR DO NOT UNDERSTAND
+    DEBUG "?"
+norequest:                                        'Timed out no request witnin TimeOut
+    GOTO ReturnBack      'back to calling routine   Return back to normal flow
+
+'****************************************************
+' Short command responsed to and from master
+'****************************************************
+    '
+    '  Send Acknowledge
+    '
+Ackback:
+    SEROUT masterout,Baud9600T,pace,[Ack]  'I'm ok your ok
+    DEBUG "A"
+    GOTO ReturnBack                         'back to flow of things
+    '
+    '  Send Sync byte
+    '
+Syncback:
+    SEROUT masterout,Baud9600T,pace,[$55]  'Send the sync byte back
+    DEBUG "Y"
+    GOTO ReturnBack                        'back to flow of things
+    '
+    '  Send Error response
+    '
+Errorback:
+    SEROUT masterout,Baud9600T,pace,[$ff]  'Error response to master
+    #IF nodebug = 0 #THEN
+    DEBUG "eb"
+    #ENDIF
+    GOTO ReturnBack                        'back to flow of things
+    '
+    '  Send MicroLab Status
+    '
+Statusback:
+    GET MLabStatus,TempReg0                'get MicroLab status byte
+    SEROUT masterout,Baud9600T,pace,[TempReg0]  'Send MicroLab status to master
+    DEBUG " S=",HEX2 TempReg0
+    GOTO ReturnBack                        'back to flow of things
+    '
+    ' MicroLab ID
+    '
+GetMLID:
+    STORE DataStorage                      'set to stamp data ee2ram
+    READ IDcodefile,TempReg0               'get 1st ascii of id code
+    SEROUT masterout,Baud9600T,pace,[TempReg0]  'Send 1st ascii id code to master
+    READ IDcodefile+1,TempReg0             'get 2nd ascii of id code
+    SEROUT masterout,Baud9600T,pace,[TempReg0]  'Send 1st ascii id code to master
+    GOTO ReturnBack                        'back to flow of things
+    '
+    '  Set Power Levels
+    '
+SetP300:                                   'Note: this is a hard command all 8 bits
+    TempReg0 = P300ma                      'get 300 ma control byte
+    GOTO SetPower1
+SetP100:
+    TempReg0 = P100ma                      'get 100 ma control byte
+    GOTO SetPower1
+SetP75:
+    TempReg0 = P75ma                      'get 300 ma control byte
+    GOTO SetPower1
+SetP50:
+    TempReg0 = P50ma                      'get 300 ma control byte
+SetPower1:
+    PUT PowerStatus,TempReg0               'set the control byte all 8 bits
+    GOTO Ackback                           'send Ack of command
+'
+'-----------------------------------------------------------
+'  Take a photo and transfer it to McMek
+'-----------------------------------------------------------
+'
+TakeandDownload:
+  GOSUB TakePhoto1            'take the photo and get data ready to dump
+  GOTO DumpInText             'will dump in text to McMek
+  '
+TakePhoto:
+    DEBUG "tk-"                 'Tell terminal what I am doing now
+    GOSUB TakePhoto1            'take the photo
+    DEBUG "st",CR               'Tell terminal what I am doing now
+    GOTO storephoto             'store the photo
+  '
+TakePhoto1:
+  '
+  LOW camerapower               'turn camera power off if on in error recovery
+  PAUSE 500                     '1/2 sec
+   '
+  HIGH cameraCS               'set camera chip select to high
+  HIGH  camerapower           'set camera power on
+  '
+  PAUSE 1500                  'wait 1.5 sec for camera to init itself
+  '
+   '
+    FOR tempreg1 = 0 TO 150                                 'check 150 times for sync before giving up
+      LOW cameraCS                                            'enable camera chip select
+        FOR xcounter = 0 TO 7                                   'set to send string of 7 commands
+          LOOKUP xcounter,[$ff,$ff,$ff,$0d,$00,$00,$00,$00],sdata 'set for command to send
+          GOSUB manualbytespi                                     'send the byte, while looking at input
+          IF counter=0 THEN DEBUG CR,"hold 7",CR:GOTO TakeandDownload
+          text(xcounter) = TempReg3                               'place input into array for later
+        NEXT                                                    'send next byte not finished
+      IF (text(2) = $FF) & (text(3) = $0E) & (text(4) = $0D) THEN GOTO SyncCamera2  'yes received ack from camera
+      HIGH cameraCS                                           'did not receive ack, set chip select to high
+    NEXT                                                    'do it again
+    tempreg0 = 1                                            'sync Timed out Error, set code
+    GOTO cameraerror                                        '
+SyncCamera2:                                                'now need to wait for sync from camera
+   LOW cameraCS
+    SHIFTOUT cameramosi, cameraclk, MSBFIRST, [$FF]            ' send the bits Quick dummy
+    SHIFTOUT cameramosi, cameraclk, MSBFIRST, [$FF]            ' send the bits
+    SHIFTOUT cameramosi, cameraclk, MSBFIRST, [$FF]            ' send the bits
+    SHIFTOUT cameramosi, cameraclk, MSBFIRST, [$0D]            ' send the bits
+    SHIFTOUT cameramosi, cameraclk, MSBFIRST, [$00]            ' send the bits
+    SHIFTOUT cameramosi, cameraclk, MSBFIRST, [$00]            ' send the bits
+    SHIFTOUT cameramosi, cameraclk, MSBFIRST, [$00]            ' send the bits
+    SHIFTOUT cameramosi, cameraclk, MSBFIRST, [$00]            ' send the bits
+    HIGH cameraCS                                              'deselect camera
+    FOR xcounter = 0 TO 7                                      'set to send 0 bytes of command
+    LOOKUP xcounter,[$ff,$ff,$ff,$0D,$00,$00,$00,$00],sdata    'command
+    LOW cameraCS                                               'enable camera chip select
+    GOSUB manualbytespi                                        'send the byte while looking at input
+    IF counter=0 THEN DEBUG CR,"hold 6",CR:GOTO TakeandDownload
+    text(xcounter) = TempReg3                                  'place received data in text array
+    NEXT                                                       'ready to send next byte
+    HIGH cameraCS                                              'deselect camera select
+    IF (text(2) = $FF) & (text(3) = $0D) THEN GOTO SyncCamera3 'check for sync from camera
+    tempreg0 = 2                                               'set camera error code
+    GOTO cameraerror                                           'goto error processing
+SyncCamera3:                                                   'now need to ack the sync from camera
+    FOR xcounter = 0 TO 7                                      'set to send ack 8 bytes
+    LOOKUP xcounter,[$ff,$ff,$ff,$0e,$0d,$00,$00,$00],sdata    'get each byte of command
+    LOW cameraCS                                               'enable camera chip select
+    GOSUB manualbytespi                                        'send the byte to the camera
+    IF counter=0 THEN DEBUG CR,"hold 5",CR:GOTO TakeandDownload
+    text(xcounter) = TempReg3                                  'place the received data in text array
+    NEXT                                                       'send next byte
+    HIGH cameraCS                                              'disable camera select, now synced
+    '
+    ' Camera now Synced and waiting for instructions
+    ' need to init camera
+    ' INIT CAMERA
+    '
+    GET CameraRes,TempReg2                                    'Get current resoluation
+    #IF nodebug = 0 #THEN
+    DEBUG HEX2 TempReg2
+    #ENDIF
+    FOR tempreg1 = 0 TO 150                                   'we will try 150 times
+    LOW cameraCS                                              'select camera
+    FOR xcounter = 0 TO 7                                     'set to send 8 bytes
+    LOOKUP xcounter,[$ff,$ff,$ff,$01,$00,$87,$01,TempReg2],sdata   'set init command
+    GOSUB manualbytespi                                       'send it while looking at input
+    IF counter=0 THEN DEBUG CR,"hold 4",CR:GOTO TakeandDownload
+    text(xcounter) = TempReg3                                 'place received data in text array
+    NEXT                                                      'get and send the next byte
+    HIGH cameraCS                                             'deselect the camera
+    IF (text(2) = $FF) & (text(3) = $0E) & (text(4) = $01) THEN GOTO SelectQuality
+    NEXT
+    TempReg0=3                                                  'no init error 3
+    GOTO cameraerror
+    '
+    ' init ok, now select quality
+    '
+SelectQuality:
+    GET CameraQua,TempReg2                                      'get current quality
+    FOR tempreg1 = 0 TO 150                                    'we will try 150 times
+    LOW cameraCS                                               'select camera
+    FOR xcounter = 0 TO 7                                      'set to send 8 bytes
+    LOOKUP xcounter,[$ff,$ff,$ff,$10,TempReg2,$00,$00,$00],sdata    'set quality command
+    GOSUB manualbytespi                                        'send while getting input
+    IF counter=0 THEN DEBUG CR,"hold 3",CR:GOTO TakeandDownload
+    text(xcounter) = TempReg3                                  'place input in text array
+    NEXT                                                       'get the next one
+    HIGH cameraCS                                              'deselect camera
+    IF (text(2) = $FF) & (text(3) = $0E) & (text(4) = $10) THEN GOTO GetPicture
+    NEXT
+    tempreg0 = 4
+    GOTO cameraerror
+    '
+    'Set the quality properly
+    '
+GetPicture:
+    FOR tempreg1 = 0 TO 150                                    'again 150 times
+    LOW cameraCS                                               'enable camera
+    FOR xcounter = 0 TO 7                                      'set to send 8 bytes
+    LOOKUP xcounter,[$ff,$ff,$ff,$04,$05,$00,$00,$00],sdata    'get picture command                                                               '
+    GOSUB manualbytespi                                        'send and receive
+    IF counter=0 THEN DEBUG CR,"hold 2",CR:PUT CameraQua,CameraBetter:GOTO TakeandDownload
+    text(xcounter) = TempReg3                                  'place in array
+    NEXT
+    HIGH cameraCS                                              'deselect camera
+    IF (text(2) = $FF) & (text(3) = $0E) & (text(4) = $04) THEN readydownload
+    NEXT
+    tempreg0 = 5
+    GOTO cameraerror
+    '
+    '
+readydownload:
+    LOW cameraCS                                               'endable camera
+    FOR xcounter = 0 TO 7                                      'set for 8 bytes
+    LOOKUP xcounter,[$ff,$ff,$ff,$04,$05,$00,$00,$00],sdata    'Download command
+    GOSUB manualbytespi                                        'send it and read input
+    IF counter=0 THEN DEBUG CR,"hold 1",CR:GOTO TakeandDownload
+    text(xcounter) = TempReg3                                  'place received data in text array
+    NEXT                                                       'get next byte
+    HIGH cameraCS                                              'disable camera select
+    TempWord = text(5) + (text(6)*256) + (text(7)*256*256)     'Array has size of photo
+    '
+    'Photo length is in TempWord and camera is set to download the photo
+    'Now what to do with the data
+    '
+    RETURN    'Phototaken data ready to do something with
+    '
+    '----------------------------------------------------
+    '
+DumpInText:
+        SEROUT masterout,Baud9600T,Pace,["Size: ", DEC TempWord,"  ",HEX4 TempWord,CR]     'output size of photo to terminal
+    '
+    '
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'Now we need to transfer the photo to McMek in TEXT Format
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    '
+downloadphoto:
+    '
+    DO WHILE (TempWord) > 0
+    LOW cameraCS
+    SHIFTIN cameramiso, cameraclk, LSBFIRST,  [text]
+    SEROUT masterout,Baud9600T,1,[HEX2 text]  '?????????????????????????????????????????
+    HIGH cameraCS
+    TempWord = TempWord - 1
+    LOOP
+    '
+    LOW camerapower                          'Turn camera off
+    '
+Photofinish:
+    DEBUG CR,"Pdone",CR
+    SEROUT masterout,Baud9600T,Pace,[CR,"Pdone",CR,$1B] 'send "ascii esc" termination charator
+    GOTO ReturnBack                          'return to calling slot and routine
+    '
+'********************************************************************
+'  Set Resolution and Quality
+' Enter TempReg2 = has value for res of quality
+'  return with scratchpad set
+'********************************************************************
+'
+'
+set640:                      'set res mode 640 $07
+    PUT CameraRes,Camera640     'Resolution
+    GOTO OK                  'set it
+set320:                      'set res mode $05=320
+    PUT CameraRes,Camera320     'Resolution
+    GOTO OK                  '
+
+'
+setq0:                    'set quality mode $00=Best $01=Better $02=Normal
+setq1:
+setq2:
+    TempReg2=TempReg2 & $03            'remove ascii data
+    PUT CameraQua,TempReg2             'set quality
+OK:
+    SEROUT masterout,Baud9600T,Pace,[CR,"OK",CR,$1B] 'send "ascii esc" termination charator
+    GOTO ReturnBack
+
+'----------------------------------------------------------------------
+    '
+cameraerror:
+    DEBUG "CE",HEX2 tempreg0,CR
+    SEROUT masterout,Baud9600T,Pace,[CR,"cam err",CR,$1B] 'send "ascii esc" termination charator
+    GOTO ReturnBack
+    '
+    '
+'***************************************************************************
+' Entry -> sdata = byte to send
+' Exit <-  TempReg3 = byte received
+'
+manualbytespi:
+  TempReg3 = 0        'returned byte starts all "0"s
+  TempReg0 = $80      'set for bit testing and seting start with msb
+  '
+  ' for hold timeout
+  '
+  counter = $ff                            'set hold time out value
+  '
+  back2:
+  IF counter = 0 THEN RETURN               'hold time out if more than 255 time error
+  counter = counter - 1                    'dec timeout loop
+  IF IN5 = 1 THEN GOTO back2                                           'Wait for camera not busy
+  '
+  FOR counter = 1 TO 8                                                 'Set for 8 bit shift
+    IF sdata & TempReg0 = 0 THEN LOW cameramosi ELSE HIGH cameramosi     'set bit to low
+    HIGH cameraclk                                                       'set camera clock to high
+    IF IN3 = 1 THEN TempReg3 = TempReg0 | TempReg3                       'set input to high read a one
+    TempReg0 = TempReg0 >> 1                                             'shift for next bit
+    LOW cameraclk                                                        'clock to low
+  NEXT
+  RETURN
+'
+'**************************************************************************
+'  get time from McMek set time in stamp and send to Slave processor
+'  got "t" command
+'**************************************************************************
+'
+'
+settim:
+    FOR TempReg1= RTCsec TO RTCyear       'Pointing to scratchpad buffer locations
+    SERIN masterin ,Baud9600T,1250,Errorback,[TempReg0]  'Wait for request/command from McMek,wait .5 sec for response
+    PUT TempReg1,TempReg0                 'place time digits in scratchpad as a buffer
+    NEXT
+    '
+    ' Got all digits from master, now send to Slave to sync
+    '
+    SEROUT internawout,Baud2400T,[$5A]                 'send Slave SetTime command
+    SERIN internawin,Baud2400T,10000,NoSlave,[TempReg0] 'get Slave ready response
+    PUT SlaveErr,TempReg0                               'save response
+    '
+    FOR TempWord = RTCsec TO RTCyear             'send time to slave
+    PAUSE 5                                      'wait for slave just in case
+    GET TempWord,TempReg0                        'get time from scratchpad
+    SEROUT internawout,Baud2400T,[TempReg0]      'send to set time
+    NEXT
+    '
+    STORE DataStorage
+    FOR TempWord = Missionsec TO Missionday '1228 set power on that was stored in stamp
+    PAUSE 5
+    READ TempWord,TempReg0                  'get the value from memory
+    SEROUT internawout,Baud2400T,[TempReg0] 'send it to the slave
+'    DEBUG DEC TempReg0                      'TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+    NEXT
+    '
+    #IF nodebug = 0 #THEN
+    DEBUG "tset",CR
+    #ENDIF
+    GOTO Ackback
+NoSlave:                                         'slave did not respond to request to send data
+   HIGH internawout    'reset send
+   GOTO ReturnBack
+   '
+   '
+   '
+'************************************************************************
+'Photo bank write at address 0000 in the active bank, first bytes is information
+' file Name defined and numbered and xfered to EERAm in the active bank
+'***********************************************************
+' 10000 = 1st ID "?"                      'ID0
+' 10001 = 2nd ID "?"                      'ID1
+' 10002 = Ascii digit                     'LastPhoto location stored slot 4 data
+' 10003 = Ascii digit                     'LastPhoto location stored slot 4 data
+' 10004 = Ascii digit                     'LastPhoto location stored slot 4 data
+' 10005 = Ascii digit                     'LastPhoto location stored slot 4 data
+' 10006 = Ascii digit                     'LastPhoto location stored slot 4 data
+' 10007 = Ascii digit file type T or P    'Fixed value
+' 10008 = High byte of length             'Enter with value in TempWord
+' 10009 = low byte of length              'Enter with value in TempWord
+' 1000A = 1st byte of jpg file
+'
+'************************************************************************
+StorePhoto:
+    '
+    GET ActiveBank,TempReg2    'Get ActiveBank pointer to put photo 0,2,4
+    '
+    'Put JPG length into file header, Enter with length in "TempWord"...
+    '
+    xcounter = 8               'point to Length
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [Tempword.HIGHBYTE]
+    PAUSE 9
+    xcounter=xcounter+1
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [Tempword.LOWBYTE]
+    PAUSE 9
+    '
+    ' JPG file length now place in the header of the active eeram memory bank
+    ' Now store name in header
+    '
+    STORE DataStorage                      'set to stamp EERAM storage area
+    xcounter=0                             'xcounter now points to photo number high byte
+    FOR counter = 0 TO 6                   'lets move the ascii file name and number to the EERAM
+    READ IDcodefile+counter,TempReg0       'Get MSD of file name and number in ascii
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]
+    PAUSE 9                                'must wait for eeram write to finish
+    xcounter=xcounter+1                    'point xcounter to next mem location to put file name and  number
+    NEXT                                   'xfer to balance of the ascii file numbers
+    '
+    ' File name and number is now placed in the header of the active eeram memory bank
+    ' Now place file type in header, note not used at this point
+    '
+    TempReg0 = "P"                          'Type of file "P" photo (note not used  yet)
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]
+    PAUSE 9                                'must wait for eeram write to finish
+    '
+    ' Header now finished, time to do data
+    '
+
+    xcounter = xcounter+3                  'points to 1st byte of jpg file.
+    DO WHILE (TempWord) > 0        'TempWord still has length of jpg data
+    LOW cameraCS                   'enable the chip select for the camera
+'    PAUSE 3                        'lets wait a little time to settle ??????seem ok for one test??????????????????
+    SHIFTIN cameramiso, cameraclk, LSBFIRST,  [text]  'get the byte from the camera
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [text] 'store the byte in eeram
+    PAUSE 9
+    '    DEBUG "T=",HEX2 text," X",HEX4 xcounter,CR
+    xcounter=xcounter+1                       'point target to next location
+    IF xcounter.LOWBYTE  <> 0 THEN GOTO NotYetHeart   'no heartbeat yet
+    '
+    DEBUG "*"                      'output to show alive
+    '
+    #IF nodebug = 0 #THEN
+    DEBUG HEX2 TempReg2                      'output to verify bank
+    #ENDIF
+    '
+    IF xcounter.HIGHBYTE & $0F <> 0 THEN GOTO NotYetHeart '
+    '
+    'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+    GOTO HeartBeat1                           'do a heartbeat every 4096 stores
+HeartBeat1Return:                             'will return back here from heartbeat
+    'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+    '
+NotYetHeart:
+    HIGH cameraCS                             'deselect camera
+    TempWord = TempWord - 1                   'dec data count, count the read
+    LOOP                                      'loop until done
+    LOW camerapower                           'Turn camera off
+    '
+    'Data jpg now transfered from the camera to the ee2ram in the active bank
+    '  Now lets do the Text File.......
+    '
+      'TempReg0 = Returning vector indes
+      'TempReg1 = vector index to run in next slot
+      'TempReg3 = the slot number to go to
+      '
+      '  TempReg0=0    '(Hard Slot Jump) run program 1 in slot when returned
+  TempReg1=1    'run program 1 in slot 4
+  RUN 4         'run slot 4
+  '
+'TextfileReturn:      '(Hard Slot Jump Return)
+'  GOTO ReturnBack
+  '
+  '
+'  PUT VectorFromNum,TempReg0     'this is the vector when returning back to this slot
+'  PUT VectorFromSlot,6      'To vector back to Slot 5
+ ' RUN TempReg3
+
+    '
+'    GOTO Photofinish                          'say done
+'
+'***********************************************************
+'  Up load photo and Text files to the Master Controller McMek
+'  send format is below, first send Photo jpg followed by matching
+'  text file in the same bank, start searching by looking at the
+'  status byte of the MicroLab...then upload the file that is set
+'***********************************************************
+' 10000 = 1st ID "?"                      'ID0
+' 10001 = 2nd ID "?"                      'ID1
+' 10002 = Ascii digit                     'LastPhoto location stored slot 4 data
+' 10003 = Ascii digit                     'LastPhoto location stored slot 4 data
+' 10004 = Ascii digit                     'LastPhoto location stored slot 4 data
+' 10005 = Ascii digit                     'LastPhoto location stored slot 4 data
+' 10006 = Ascii digit                     'LastPhoto location stored slot 4 data
+' 10007 = Ascii digit file type T or P    'Fixed value
+' 10008 = High byte of length             'Enter with value in TempWord
+' 10009 = low byte of length              'Enter with value in TempWord
+' 1000A = 1st byte of jpg file
+'
+'
+UpLoadFilestoMcMek:
+UpLoadB0:
+    TempReg2 = EBank0                     'set to upload bank 0 data
+    GET MLabStatus,TempReg0               'get MicroLab Status byte
+    TempReg3 = TempReg0 & ~B0ready        'clear the ready bit, sending now
+    GOTO UpLoadFB                         'Go to upload proceedure
+UpLoadB1:
+    TempReg2 = EBank1                     'set to upload bank 1 data
+    GET MLabStatus,TempReg0               'get MicroLab Status byte
+    TempReg3 = TempReg0 & ~B1ready        'clear the ready bit, sending now
+    GOTO UpLoadFB                         'Go to upload proceedure
+UpLoadB2:
+    TempReg2 = EBank2                     'set to upload bank 2 data
+    GET MLabStatus,TempReg0               'get MicroLab Status byte
+    TempReg3 = TempReg0 & ~B2ready        'Keep in TempReg3 clear the ready bit, sending now
+    '
+UpLoadFB:
+                                'file always starts at address 0 in the bank
+    FOR xcounter = 0 TO 7       'set to upload Header up to jpg length byte
+    I2CIN InternI2c, $A1 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE,[TempReg0] '
+    SEROUT masterout,Baud9600T,[TempReg0]    'This is Binary
+    PAUSE 1                                  'Pause 1 millisec to allow master processing
+    NEXT
+    '
+    'Now get length of data
+    TempWord =0
+    I2CIN InternI2c, $A1 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE,[TempReg0]  'MSB
+    Tempword.HIGHBYTE = Tempreg0
+    SEROUT masterout,Baud9600T,[TempReg0]     'send high byte of length This is Binary
+    '
+    xcounter = xcounter + 1
+    I2CIN InternI2c, $A1 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE,[TempReg0]  'first byte is  Name
+    Tempword.LOWBYTE = Tempreg0
+    SEROUT masterout,Baud9600T,[TempReg0]     ' send low byte This is Binary
+    '
+ DEBUG CR,HEX4 TempWord 'TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+    xcounter = xcounter + 1   'now points to the first byte of the jpg file
+    PAUSE 5                   'Pause 1 millisec to allow master processing of length plus others
+    '
+    'Now send the jpg data for the length of TempWord
+    '
+Blocksize CON 1023 'set block size block size+1 is actual
+    '    Send in 1024 blocks
+    '
+nextblock:
+    FOR TempWord1 = 0 TO Blocksize
+    I2CIN InternI2c, $A1 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE,[TempReg0]  'first byte is  Name
+    SEROUT masterout,Baud9600T,[TempReg0]                'send jpg data
+    xcounter = xcounter + 1                              'to next byte of photo
+    TempWord = TempWord - 1
+    NEXT
+    '
+    '  Now we wait for ack
+    '
+    SERIN masterin ,Baud9600T,64000,abortupload,[TempReg0]  '20 sec abort time at .4ms unit
+    IF TempReg0 <> Ack THEN DEBUG HEX2 TempReg0,CR :GOTO abortupload    'did not Ack abort on anything else
+    '
+    '
+    DEBUG ">"   '"Ack",HEX4 TempWord,CR
+    IF TempWord>Blocksize THEN GOTO nextblock    'got more 1024 bytes for block
+    '
+    '  This sends the last block which is blocksize of less bytes
+    '
+    DO WHILE (TempWord) > 0
+    I2CIN InternI2c, $A1 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE,[TempReg0]  'first byte is  Name
+    SEROUT masterout,Baud9600T,[TempReg0]                'send jpg data
+    xcounter = xcounter + 1                              'to next byte of photo
+    TempWord = TempWord - 1
+    LOOP
+    '
+    '
+    '
+'    DEBUG HEX4 xcounter," ",HEX4 TempWord," - ",HEX4 TempWord1,CR
+    '
+    ' Jpg photo data finished up loading, Now need to upload the associated text file
+    '
+    PAUSE 10     'wait for 4 millisec between jpg data finished and text starting
+    '
+    ' Upload text file in this bank
+    '
+    xcounter = $C000   'Set xcounter to the starto of text within this bank
+    '
+NextText:
+    I2CIN InternI2c, $A1 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE,[TempReg0]
+    SEROUT masterout,Baud9600T,[TempReg0]                'send text file
+    xcounter = xcounter + 1                              'to next byte of photo
+    IF TempReg0 <> EOF THEN GOTO NextText                'not finished with text yet
+    '
+    ' command finished, returnback
+    ' File completed upload ok no errors of aborts
+    '
+    PUT MLabStatus,TempReg3               'KEPT in TempReg3 replace the status bit
+    '
+    GOTO ReturnBack
+abortupload:                              'Aborted no flags or pointer changed
+    DEBUG "Tabort",CR
+    GOTO ReturnBack
+    '
+
+'********************end of up load command ********************************************

@@ -1,0 +1,446 @@
+' {$STAMP BS2P}
+' {$PBASIC 2.5}
+' {$PORT COM3}
+
+
+version  CON 1602
+
+'**********************
+'   Slot 3
+'**********************
+
+'
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXX >>  Start Here to Copy Header entries  <<  XXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'
+                       'S0 contains the timing loop
+                       'S2 contains the event table AND actions.
+                       'S1 contains test code placeholder
+'
+' 2012
+' 1. added test for payload interface boards
+' 2. clean slot 0, added time 0,1,2 for clock speed
+'
+'******************  Start of System Global lables *******************
+'     Conditional Assemblies
+'
+#DEFINE FlyConfig = 0              '1=Set to Flight Configuration, 0=Test Configuration
+#DEFINE fastclock = 0              '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
+#DEFINE testreset = 1              '1=test reset and reset count
+#DEFINE SaySlot   = 1              '1=Say Slot with vector
+#DEFINE Sayit = 1                  '1=Say what is happening
+#DEFINE nodebug = 1                '1= nodebug outputs
+#DEFINE MasterEnabled = 1          '1= enable checking for master input
+'
+'
+'***************************************************************************************
+'********* EEPROM Data Storage Area ****************************************************
+'Start storage at top of slot6 and work downwards, code can go in slot 4, but be carful
+'not to overwrite the data storage.  Programs go from botton to top, Data storage, and
+'our data storage allocations are from the top down.  MUST BE CHECKED MANUALLY, program
+'does not know any better.
+'***************************************************************************************
+'
+DataStorage    CON 4                'EEROM data is storaged in Slot 4
+'
+'
+'Data storage is defined at the end of this slot (slot 4), the spaces and address must match up with
+'the lables defined here which will be used across all slots, be careful in defining this
+'
+Cstatus             CON 0                    '00 See data at data storage area
+TestNumber          CON Cstatus+1            'Test Sequence Counter  1112
+ResetNumber         CON TestNumber+2         '00 Number of times reset sence downloaded
+IDcodefile          CON ResetNumber+1        'MicroLab alpha ID  2 ascii values
+LastPhoto           CON IDcodefile+2         '00000 Photo number  5 ascii values
+LastBKupload        CON LastPhoto+5          'Number of the last command file uploaded
+NextBktoLoad        CON LastBKupload+1       'NextBktoLoad       next bank to load
+LastuploadCommand   CON NextBktoLoad+1       'LastuploadCommand   Number of the last command file uploaded
+Missionsec          CON LastuploadCommand+2  'Missionsec          clock sec count here 0-59
+Missionmin          CON Missionsec+1         'Missionmin          clock min count here 0-59
+Missionhour         CON Missionmin+1         'Missionhour         lock hour count here 0-23
+Missionday          CON Missionhour+1        'Missionday          lock day count here 0-xx
+TempStatus          CON Missionday+1         'Temp storage for test status routines
+'
+'     'ETC....
+'
+'**********************************************************************
+'******** Scrathpad Ram Defined Ram location across all slots *********
+'**********************************************************************
+'
+ScratchRam     CON 0                  'start of Scratch ram locations bytes
+'
+'----- Bios and User Scratch pad memory locations -----------------------------
+'
+Resetverify    CON ScratchRam         'location is 0 on Power on Reset or not Zero for slot return
+VectorFromSlot CON Resetverify+1      'Slot to return to - who called the program vector
+VectorFromNum  CON VectorFromSlot+1   'From Vector number within slot place to Return to
+SlotErrReturn  CON VectorFromNum+1    'Error code return from Slot program run
+'
+sMissionday     CON SlotErrReturn+1     'BIOS Mission clock day count here 0-xx
+sMissionhour    CON sMissionday+1       'BIOS Mission clock hour count here 0-23
+sMissionmin     CON sMissionhour+1      'BIOS Mission clock min count here 0-59
+sMissionsec     CON sMissionmin+1       'BIOS Mission clock sec count here 0-59
+'
+'---------- Bios provided data for user -----------------------------------------
+'
+RTCsec         CON sMissionsec+1      'BIOS Real Time clock sec count here 0-59
+RTCmin         CON RTCsec+1           'BIOS Real Time clock min count here 0- 59
+RTChour        CON RTCmin+1           'BIOS Real Time Clock hour count here 0-23
+RTCday         CON RTChour+1          'BIOS Real Time clock day count here 1-31
+RTCmonth       CON RTCday+1           'BIOS Real Time clock month count here 1-12
+RTCyear        CON RTCmonth+1         'BIOS Real Time clock year count here 0-99
+'
+AmbTemperature     CON  RTCyear+1             'BIOS Ambient temperature in celcius (8 low bits of 10 bits)
+AmbTemperaturehigh CON  AmbTemperature+1      'BIOS Ambient temperature in celcius (2 high bits of 10 bits)
+AmbHumidity        CON  AmbTemperaturehigh+1  'BIOS Ambient Humidity  (8 low bits of 10 bits)
+AmbHumidityhigh    CON  AmbHumidity+1         'BIOS Ambient Humidity  (2 high bits of 10 bits)
+'
+A2Dchannel0        CON  AmbHumidityhigh+1     'BIOS Analog channel 0, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel0high    CON  A2Dchannel0+1         'BIOS Analog channel 0, (2 bits 0f 0v to 2.5v low-> high)
+A2Dchannel1        CON  A2Dchannel0high+1     'BIOS Analog channel 1, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel1high    CON  A2Dchannel1+1         'BIOS Analog channel 1, (2 bits 0f 0v to 2.5v low-> high)
+A2Dchannel2        CON  A2Dchannel1high+1     'BIOS Analog channel 2, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel2high    CON  A2Dchannel2+1         'BIOS Analog channel 2, (2 bits 0f 0v to 2.5v low-> high)
+A2Dchannel3        CON  A2Dchannel2high+1     'BIOS Analog channel 3, (8 bits 0f 0v to 2.5v low-> high)
+A2Dchannel3high    CON  A2Dchannel3+1         'BIOS Analog channel 3, (2 bits 0f 0v to 2.5v low-> high)
+InternTemp         CON  A2Dchannel3high+1     'Bios internal temp of msp430- Needs Calibration
+InternTemphigh     CON  InternTemp+1          'Bios internal temp of msp430- Needs Calibration
+VCCby2             CON  InternTemphigh+1      'Bios VCC/2 for calabration - Regulator check
+VCCby2high         CON  VCCby2+1              'Bios VCC/2 for calabration - Regulator check
+'
+'----------- Bios Reserved working registers ----------------------------------------
+'
+CameraRes       CON  VCCby2high+1     'Name this Bios Register (camera Resolution 320 $05 640 $07)
+CameraQua       CON  CameraRes+1      'Name this Bios Register (Camera quality $02 normal, $01 Better, $00 Best)
+SlaveErr        CON  CameraQua+1      'slave MSP430 status byte (Local Slave Status)
+ActiveBank      CON  SlaveErr+1       'Name this Bios Register (Active bank)
+TextPointer     CON ActiveBank+1      'Name 16 bit pointer to text in active bank
+'
+'MicroLab Bios Status Byte given to Master on Status Request
+'  Location and Bits defined
+'
+MLabStatus     CON  TextPointer+2     'Current Status of MicroLab
+HighPower      CON  $80               '  Bit 7=high power request
+ExComplete     CON  $40               '  Bit 6 = execution of upload command completed
+                                      '  Bit 5,4,3, don't care
+B2ready        CON  $04               '  Bit 2 = bank 2 ready for upload
+B1ready        CON  $02               '  Bit 1 = bank 1 ready for upload
+B0ready        CON  $01               '  Bit 0 = bank 0 ready for upload
+'
+'MicroLab Power Status Registers
+'                                      '
+PowerStatus    CON  MLabStatus+1      'Power control value
+P300ma         CON  $80               'enable high power 300ma mode
+P75ma          CON  $40               'set to 75ma power usage
+P50ma          CON  $20               'set to low power 50ma
+P100ma         CON  $00               'default value of power 100ma
+'
+'Reserved Bios Working Registers
+'
+BiosWord0      CON  PowerStatus+1     'BIOS Reserved Word for Bios operations
+BiosWord0h     CON  BiosWord0+1       '
+BiosWord1      CON  BiosWord0h+1      'BIOS Reserved Word for Bios operations
+BiosWord1h     CON  BiosWord1+1       '
+BiosWord2      CON  BiosWord1h+1      'BIOS Reserved Word for Bios operations
+BiosWord2h     CON  BiosWord2+1       'BIOS Reserved Word for Bios operations
+BiosWord3      CON  BiosWord2h+1      'BIOS Reserved Word for Bios operations
+BiosWord3h     CON  BiosWord3+1       'BIOS Reserved Word for Bios operations
+'
+'-----------General Purpose registers across Slots--------------------------------------
+'
+scr_Register0  CON BiosWord3h+1       'General use Scratchpad Ram location across all slots
+scr_Register1  CON scr_Register0+1    'General use Scratchpad Ram location across all slots
+scr_Register2  CON scr_Register1+1    'General use Scratchpad Ram location across all slots
+scr_Register3  CON scr_Register2+1    'General use Scratchpad Ram location across all slots
+scr_Register4  CON scr_Register3+1    'General use Scratchpad Ram location across all slots
+scr_Register5  CON scr_Register4+1    'General use Scratchpad Ram location across all slots
+scr_Register6  CON scr_Register5+1    'General use Scratchpad Ram location across all slots
+scr_Register7  CON scr_Register6+1    'General use Scratchpad Ram location across all slots
+'
+'--------- Location for Saved User Variables -----------------------------------------
+'
+Reg0low    CON       scr_Register7+1   'Storage of user variables during Bios operations
+Reg0high   CON       Reg0low+1         'Storage of user variables during Bios operations
+Reg1low    CON       Reg0high+1        'Storage of user variables during Bios operations
+Reg1high   CON       Reg1low+1         'Storage of user variables during Bios operations
+Reg2low    CON       Reg1high+1        'Storage of user variables during Bios operations
+Reg2high   CON       Reg2low+1         'Storage of user variables during Bios operations
+Reg3low    CON       Reg2high+1        'Storage of user variables during Bios operations
+Reg3high   CON       Reg3low+1         'Storage of user variables during Bios operations
+Reg4low    CON       Reg3high+1        'Storage of user variables during Bios operations
+Reg4high   CON       Reg4low+1         'Storage of user variables during Bios operations
+Reg5low    CON       Reg4high+1        'Storage of user variables during Bios operations
+Reg5high   CON       Reg5low+1         'Storage of user variables during Bios operations
+Reg6low    CON       Reg5high+1        'Storage of user variables during Bios operations
+Reg6high   CON       Reg6low+1         'Storage of user variables during Bios operations
+Reg7low    CON       Reg6high+1        'Storage of user variables during Bios operations
+Reg7high   CON       Reg7low+1         'Storage of user variables during Bios operations
+Reg8low    CON       Reg7high+1        'Storage of user variables during Bios operations
+Reg8high   CON       Reg8low+1         'Storage of user variables during Bios operations
+Reg9low    CON       Reg8high+1        'Storage of user variables during Bios operations
+Reg9high   CON       Reg9low+1         'Storage of user variables during Bios operations
+Reg10low   CON       Reg9high+1         'Storage of user variables during Bios operations
+Reg10high  CON       Reg10low+1         'Storage of user variables during Bios operations
+Reg11low   CON       Reg10high+1        'Storage of user variables during Bios operations
+Reg11high  CON       Reg11low+1         'Storage of user variables during Bios operations
+Reg12low   CON       Reg11high+1        'Storage of user variables during Bios operations
+Reg12high  CON       Reg12low+1         'Storage of user variables during Bios operations
+'
+'
+MoprClk0  CON        Reg12high+1        'Mission Operations Clock0, fail safe operations
+MoprClk1  CON        MoprClk0+2         'Mission Operations Clock1, fail safe operations
+MoprClk2  CON        MoprClk1+2         'Mission Operations Clock1, fail safe operations
+MoprClk3  CON        MoprClk2+2         'Mission Operations Clock1, fail safe operations
+'
+'
+NextAvailiable CON MoprClk3+2          'Next Availiable location for scratch pad ram storage
+'
+'-------   User Scratchpad Locations open for use -------------
+'
+'
+'
+'-------   User Scratchpad Locations open for use -------------  '
+'
+SlotInfo    CON 127                    'contains the current running slot.
+'
+'location number 127 contains the number of the currently running program slot
+'
+'************* End of Scratchpad Ram Space difinations ****************
+'
+'**********************************************************************
+'----- MicroLab Pins and ports on the BS2p24 Defined for BIOS ------------
+'**********************************************************************
+internalscl       CON 0       'BS2p24 interal I2c buss
+internalsda       CON 1       'BS2p24 interal I2c buss
+cameraclk         CON 2       'Camera Clock
+cameramiso        CON 3       'Camera master in slave out
+cameramosi        CON 4       'Camera msater out slave in
+camerahold        CON 5       'Camera Hold
+masterin          PIN 6       'Serial Input fm master
+'masterin          CON 6       'Serial Input fm master
+masterout         CON 7       'Serial Output to master
+payloadsda        CON 8       'SDA on payload expansion board
+payloadscl        CON 9       'SCL on payload expansion board
+internawin        CON 10      'Local slave A to D, watchdog serial in
+internawout       CON 11      'Loacl slave A to D, watchdog serial out
+camerapower       CON 12      'Camera on and off for recycle
+votedead          CON 13      'AMicroLab vote that Master is dead
+payloadio14       CON 14      'I/O payload line
+cameraCS          CON 15      'camrea chip select pin
+'
+'
+'---------------- Bios System General constants --------------------
+'
+' Input terminal constants for test set to
+con_in       CON 16          'Pin 16 is BS2P serial in from RS232 connector
+con_baud     CON 240         'set to 9600 8bit true
+con_tout     CON 250         'time out waiting for terminal input appx 100ms
+'
+'----------------- Bios General constants ---------------------------
+'
+InternI2c          CON      0          'Internal I2C buss address control
+PLi2c              CON      8          'Payload I2c BUSS address control
+PCF8574address     CON      $40        'internal I2C buss address of PFC8574
+Ebankaddress       CON      $A0        'Address of 256k eerom memory
+Ebank0             CON      $00        'Ebank0 bank address 00000-0FFFF
+Ebank1             CON      $02        'Ebank1 bank address 10000-1FFFF
+Ebank2             CON      $04        'Ebank2 bank address 20000-2FFFF
+Ebank3             CON      $06        'Ebank3 bank address 30000-3FFFF
+'
+TextBuffer         CON      $C000      'Text buffer in bank 0,1, and 2
+'
+Camera320          CON      $05        'Camera Resolution 320X240
+Camera640          CON      $07        'Camera Resolution 640X480
+CameraNormal       CON      $02        'Camera Quality Normal
+CameraBetter       CON      $01        'Camera Quality Better
+CameraBest         CON      $00        'Camera Quality Best
+'
+Baud9600T CON $00F0  'Baudrate of 9600 no parity True
+Baud2400T CON $03FD  'Baudrate of 2400 no parity true
+'
+Ack       CON $5A                      'Acknowledge response to McMek
+TimeOut   CON 500                      'input command timeout is .5 seconds
+Pace      CON 1                        'pace of output from MicroLab to System terminal
+ETX       CON $03                      'End of Text command
+EOF       CON $FF                      'end of file marker
+'
+'------------ Bios System Error and event codes for logging --------------------
+'
+NoError       CON   0       'no error on return, all ok
+'
+'-----------------  Variables Same for all program Slots  ---------------
+'  Used By BIOS
+xcounter    VAR Word         'General use 16 bit counter
+TempWord    VAR Word         'General use Temp Word Register
+TempWord1   VAR Word         'General use Temp Word Register
+counter     VAR Byte         'General use 8 bit counter
+TempReg0    VAR Byte         'General use location for values during processes
+TempReg1    VAR Byte         'General use location for values during processes
+TempReg2    VAR Byte         'General use location for values during processes
+TempReg3    VAR Byte         'General use location for values during processes
+Sdata       VAR Byte         'data to send to uart
+text        VAR Byte(8)      'make array for text
+'
+'  Variables open for use by User (9 Bytes)and not touched by the BIOS
+'  Note: above BIOS Variables can/may be used by the user, however
+'  the value may be destroyed by a Call to the BIOS or BIOS operation
+'
+UserVar0    VAR Byte         'user Varible space - Should be same across all slots
+UserVar1    VAR Byte         'user Varible space - Should be same across all slots
+UserVar2    VAR Byte         'user Varible space - Should be same across all slots
+UserVar3    VAR Byte         'user Varible space - Should be same across all slots
+UserVar4    VAR Byte         'user Varible space - Should be same across all slots
+UserVar5    VAR Byte         'user Varible space - Should be same across all slots
+
+'
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' Calibration values must be calculated and writen through the test system write eeram
+' not automatically done, this is a one time event. Calibrate CPU temp, may be as
+' much as 60 degrees C off from the factory.
+'
+SysCalBank   CON   Ebank3   'Bank for system calibration
+SysCPUcal    CON   $C002    'External E2RAM calibration locations
+'
+'
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXX  >> End of Header Copy Entries  <<  XXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'
+'*************************************************************************
+'   Enter with TempReg1 containing the program index to run in this slot
+'*************************************************************************
+  '
+  #IF SaySlot =1 #THEN
+  DEBUG ">S3-V",DEC TempReg1,CR
+  #ENDIF
+  BRANCH TempReg1,[testtext,           '0 vector flight condition setup override
+ ReturnBack,                         '1 vector to run chamber
+ ReturnBack,                             '2 vector to init the dac to balanced
+  SimDownload]                         '3 vector to this program
+  '
+
+'*************************************************************************
+'   To Run program in another slot Set TempReg1 to the vector index of
+'   that program within the target slot then "RUN" that slot,  If a return
+'   to originating slot is desired then the return vector index must be stored
+'   in the VectorFromNum location in the scratch pad memory,  and the return
+'   slot is stored in the VectorFromSlot scratch pad memory.  Then a general
+'   routine can be used to return to the originating program.
+'*************************************************************************
+  '
+InSlot  CON    3               'Define this slot, each slot is numbered
+  '
+  '***********************************************************************
+  '       To go to a slot and set a return
+  'TempReg0 = Returning vector indes
+  'TempReg1 = vector index to run in next slot
+  'TempReg3 = the slot number to go to
+  '**********************************************************************
+  '
+GotoSlot:
+  PUT VectorFromNum,TempReg0     'this is the vector when returning back to this slot
+  PUT VectorFromSlot,InSlot      'To vector back to this Slot
+  RUN TempReg3
+  '
+  '
+  '***************************************************************************
+  'When returning back, Set TempReg1 to the return vector in the calling slot
+  'get the returning slot and RUN that slot
+  '***************************************************************************
+  '
+ReturnBack:
+  GET VectorFromNum,TempReg1     'fetch the vector to run when returning to calling slot
+  GET VectorFromSlot,TempReg0    'fetch the program slot where the routine was called
+  RUN TempReg0                   'RETURNback now....!!!!
+  '
+
+  '
+  '
+  '
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXX   Programs in this slot  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'
+    '======================================================================
+ testtext:
+        '
+    DEBUG CR
+    DEBUG "Take photo download to terminal = k",CR
+    DEBUG "Take photo store in bank = I",CR
+    DEBUG "8 bit input = 8",CR        'display input value of pfc8574
+    DEBUG "8 bit output= 9",CR        'display input value of pfc8574
+    DEBUG "EERAM write = w",CR
+    DEBUG "EERAM read  = r",CR        '
+    DEBUG "EERAM dump  = d",CR
+    DEBUG "Restart     = b",CR
+    DEBUG "Output stat = h",CR
+    DEBUG "Slave time  = i",CR
+    DEBUG "Set time    = 0",CR
+    DEBUG "Output Text = R",CR
+    DEBUG "Set 640     = 6",CR
+    DEBUG "Set 320     = 3",CR
+    DEBUG "Set Quality = q",CR
+    DEBUG "Photo loop  = L",CR
+    DEBUG "Tempature on test bd = -",CR
+    DEBUG "Take Photo and Wait = p",CR
+  '
+    '======================================================================
+P2vector:
+        '
+        '
+  GOTO ReturnBack      'back to calling routine
+  '
+    '======================================================================
+P3vector:
+  '
+  '
+  GOTO ReturnBack      'back to calling routine
+  '
+'*************************************************
+'*  Testing routine to move data to download file location at $30000
+'
+SimDownload:
+    TempWord = UploadData          'set to point to data to move
+    STORE 3  'this bank
+    TempReg2 = EBank3              'point to bank 3 for down load file
+    FOR xcounter= 0 TO 255        'Set counter and pointer to download area  only 256 bytes
+    READ TempWord,TempReg0         'get byte to write
+    DEBUG "simFM=",DEC TempWord,"=>",DEC TempReg0,"xcount=",DEC xcounter,CR
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]
+    PAUSE 10                        'must wait for eeram write to finish
+    TempWord = TempWord+1
+    NEXT
+    GET MLabStatus,TempReg0        'get status byte
+    TempReg0 = TempReg0 | ExComplete 'set the upload file flag, file is ready to be used
+    PUT MLabStatus,TempReg0        'replace the status byte for further use
+    '
+    '
+    STORE DataStorage         'set to data storage bank
+    '
+    ' Reset TestNumber to 0, this is the pointer that will be used to get the data from the
+    '  downloaded file
+    '
+    WRITE TestNumber,Word $0000  'over ride operations, clear the pointer to do downloads from beginning
+    '
+    ' File has been downloaded to MicroLab, MLabStatus Byte updated with bit set
+    '
+    GOTO ReturnBack                'finished download
+
+'
+'  Data to simulate down loaded data
+'
+
+UploadData  DATA "AA",00,07,07,07,07,5 '1 test file format
+            DATA "AB",14,07,07,07,07,4 '2 test file format
+            DATA "AC",07,00,07,07,07,3 '3 test file format
+            DATA "AD",07,14,07,07,07,3 '4 test file format
+            DATA "AE",07,07,00,07,07,4 '5 test file format
+            DATA "AF",07,07,14,07,07,5 '6 test file format
+            DATA "AG",07,07,07,00,07,6 '7 test file format
+            DATA "AH",07,07,07,14,07,4 '8 test file format
+            DATA "AI",07,07,07,07,00,4 '9 test file format
+            DATA "AJ",07,07,07,07,14,4 '10 test file format
+            DATA "AK",00,14,07,07,07,4 '11 test file format
+            DATA "AL",00,00,07,07,07,4 '12 test file format
+            DATA 0,0,0,0,0,0,0,0       'Could be end
