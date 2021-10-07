@@ -448,26 +448,50 @@ TakePhotoReturn:
          tempReg0 = 4 'Destination Index (EventTableReturn)
          RUN 0        'Destination Slot
 
+'
+' 0 = on 1 = off
+'
+' PIN DO0 = voltage regulator
+' PIN DO1 = oscillator
+' PIN DO2 = LED
+' PIN IO0 = microswitch ' shut down experiment when receive input
+' current sensor connected to 5V GND SCL SDA  ' read data sheet
 
-Event2: DEBUG CR,"Turn On ALL Current Sources"  ,CR
-   I2COUT InternI2c, PCF8574Address, [%10111000]
-  ' do stuff
-        tempReg0 = 4 'Destination Index (EventTableReturn)
-        RUN 0        'Destination Slot
 
-Event3: DEBUG CR, "Vibrator", CR
-  I2COUT InternI2c, PCF8574Address, [%10110000]
+' day 1
+' turn on current for varaible samount of sconds
+' while the current is on, measure the current and store those intpo the tedxt file you know what I;m saying
+' turn of current and take picture
+' turn on oscillator for the rest of the day
+
+
+
+Event2: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator", CR
+  I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
   tempReg0 = 4
-      RUN 0
+  RUN 0
 
-Event4: DEBUG CR, "Pump", CR
-  I2COUT InternI2c, PCF8574Address, [%00111000]
-      tempReg0 = 4
-      RUN 0
+Event3: DEBUG CR, "Turn on Oscillator", CR
+  I2COUT InternI2c, PCF8574Address, [%11111101]
+  tempReg0 = 4
+  RUN 0
+
+Event4: DEBUG CR, "Measure current with Current Sensor", CR     'make event for each time 2 5 10 20 30
+  ' measure
+  DEBUG "Measured current: ",
+  WRITE
+  ' day 1 = 2 secoonds, day 2 = 5, day 3 = 10, day 4= 20, day 5= 30
+  FOR x from 1 TO ' get current day count you know what I';m saying
+    Hey siri please measure the current
+    WRITE 100 + x, currentVal
+    PAUSE 1000
+  tempReg0 = 4
+  RUN 0
+
 
 Event5: DEBUG CR, "Repeat", CR
   STORE 0
-  WRITE DurDay,01
+  WRITE DurDay,01   ' change later on 10/12 after firuging out event table
   WRITE DurHour,00
   WRITE DurMin, 59
 
@@ -489,11 +513,11 @@ P2vector:  GOTO ReturnBack      'back to calling routine
 P3vector:  GOTO ReturnBack      'back to calling routine
 
 
-
+                                                                                 `
          '    Day  Hour  Min   Tag  EventByte
  ETable DATA  00,  00,   00,   $FF,     00  'Row 0 Do Nothing
-        DATA  01,  00,   00,   $FF,     04  'Row 1 Pump for one hour
-        DATA  01,  01,   00,   $FF,     03  'Row 2 Vibrator
-        DATA  01,  01,   05,   $FF,     02  'Row 3 Current Source
-        DATA  01,  01,   06,   $FF,     01  'Row 4 Take Picture
-        DATA  01,  01,   13,   $FF,     05  'Row 5 Repeat
+        DATA  01,  00,   00,   $FF,     02  'Row 1 Turn on the current
+        DATA  01,  00,   00,   $FF,     04  'Row 2 Measure current for
+        DATA  01,  01,   05,   $FF,     02  'Row 3 Take picture (turn off current)
+        DATA  01,  01,   06,   $FF,     01  'Row 4 Turn on oscillator
+        DATA  02,  01,   13,   $FF,     05  'Row 5 Turn on the current (turn off oscillator)
