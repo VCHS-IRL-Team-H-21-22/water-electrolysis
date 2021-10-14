@@ -1,5 +1,5 @@
 ' {$STAMP BS2P}
-' {$PORT COM3}
+' {$PORT COM5}
 ' {$PBASIC 2.5}
 
 
@@ -417,11 +417,7 @@ FoundEvent:
   STORE DataStorage
 ' Feel free to change the event names to actions, or keep it as 1,2,3,4. This is preference.
   BRANCH UserVar3,[Event0,    'Event 0 (do nothing)
-  Event1,                     'Event 1 (take photo)
-  event2,                     'Event 2 (
-  event3,                     'Event 3 (
-  Event4,
-  Event5]                     'Event 4 (repeat take photo) x photoIter
+  Event1]                     'Event 4 (repeat take photo) x photoIter
 ' If BRANCHing with UserVar3 isn't working, then it will fall through to this:
   UserVar3 = 0                 'Error
   DEBUG CR,"Event Byte is out of range",CR
@@ -447,7 +443,7 @@ FoundEvent:
 ' turn on oscillator for the rest of the day
 
 ' ----------------------------------------------------------------------------------------------------
-                                              EVENTS
+                                  '            EVENTS
 ' ----------------------------------------------------------------------------------------------------
 Event0: DEBUG CR, "event0", CR                                                                             ' Event 0 (Nothing)
   tempReg0 = 4
@@ -470,56 +466,6 @@ TakePhotoReturn:
   tempReg0 = 4 'Destination Index (EventTableReturn)
   RUN 0        'Destination Slot
 
-Event2: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 2 (measure 2 seconds)
-  I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
-  FOR x from 1 TO 2:
-    I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
-    WRITE ' figure out data storage
-  tempReg0 = 4
-  RUN 0
-
-Event3: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 3 (measure 5 seconds)
-  I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
-  FOR x from 1 TO 5:
-    I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
-    WRITE ' figure out data storage
-  tempReg0 = 4
-  RUN 0
-
-Event4: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 4 (measure 10 seconds)
-  I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
-  FOR x from 1 TO 10:
-    I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
-    WRITE ' figure out data storage
-  tempReg0 = 4
-  RUN 0
-
-Event5: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 5 (measure 20 seconds)
-  I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
-  FOR x from 1 TO 20:
-    I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
-    WRITE ' figure out data storage
-  tempReg0 = 4
-  RUN 0
-
-Event6: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 6 (measure 30 seconds)
-  I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
-  FOR x from 1 TO 30:
-    I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
-    WRITE ' figure out data storage
-  tempReg0 = 4
-  RUN 0
-
-Event98: DEBUG CR, "Turn on Oscillator", CR                                                                 ' Event 98 (oscillator)
-  I2COUT InternI2c, PCF8574Address, [%11111101]
-  tempReg0 = 4
-  RUN 0
-
-Event99: DEBUG CR, "Repeat", CR                                                                             ' Event 99 (reset time)
-  STORE 0
-  WRITE DurDay, 00   ' change later on 10/12 after firuging out event table
-  WRITE DurHour,23
-  WRITE DurMin, 59
 
 ' ----------------------------------------------------------------------------------------------------
 
@@ -541,35 +487,35 @@ P2vector:  GOTO ReturnBack      'back to calling routine
 P3vector:  GOTO ReturnBack      'back to calling routine
 
 
-                                                                                 `
+
          '    Day  Hour  Min   Tag  EventByte
  ETable DATA  00,  00,   00,   $FF,    00  'Row 0  Do Nothing
 
-	DATA  01,  00,   00,   $FF,    01  'Row 1  Take photo
-        DATA  01,  00,   10,   $FF,    02  'Row 2  Turn on and Measure current for 2 seconds
-        DATA  01,  00,   10,   $FF,    01  'Row 4  Take picture (turn on LED and off current)
-        DATA  01,  00,   20,   $FF     98  'Row 5  Turn on oscillator
+  DATA  01,  00,   00,   $FF,    01  'Row 1  Take photo
+  DATA  01,  00,   10,   $FF,    02  'Row 2  Turn on and Measure current for 2 seconds
+  DATA  01,  00,   10,   $FF,    01  'Row 4  Take picture (turn on LED and off current)
+        DATA  01,  00,   20,   $FF,     98  'Row 5  Turn on oscillator
 
-        DATA  02,  00,   00,   $FF,    01  'Row 6  Take a photo (turn off oscillator) 
-	DATA  02,  00,   10,   $FF     03  'Row 8  Turn on and Measure current for 5 seconds
+        DATA  02,  00,   00,   $FF,    01  'Row 6  Take a photo (turn off oscillator)
+   DATA  02,  00,   10,   $FF,     03  'Row 8  Turn on and Measure current for 5 seconds
         DATA  02,  00,   10,   $FF,    01  'Row 9  Take picture (turn on LED and off current)
-	DATA  02,  00,   20,   $FF,    98  'Row 10 Turn on oscillator
+   DATA  02,  00,   20,   $FF,    98  'Row 10 Turn on oscillator
 
-	DATA  03,  00,   00,   $FF,    01  'Row 11 Take a photo (turn off oscillator) 
-	DATA  03,  00,   10,   $FF     04  'Row 13 Turn on and Measure current for 10 seconds
+   DATA  03,  00,   00,   $FF,    01  'Row 11 Take a photo (turn off oscillator)
+   DATA  03,  00,   10,   $FF,     04  'Row 13 Turn on and Measure current for 10 seconds
         DATA  03,  00,   10,   $FF,    01  'Row 14 Take picture (turn on LED and off current)
-	DATA  03,  00,   20,   $FF,    98  'Row 15 Turn on oscillator
+   DATA  03,  00,   20,   $FF,    98  'Row 15 Turn on oscillator
 
-	DATA  04,  00,   00,   $FF,    01  'Row 16 Take a photo (turn off oscillator) 
-	DATA  04,  00,   10,   $FF     05  'Row 18 Turn on and Measure current for 20 seconds
+   DATA  04,  00,   00,   $FF,    01  'Row 16 Take a photo (turn off oscillator)
+   DATA  04,  00,   10,   $FF,     05  'Row 18 Turn on and Measure current for 20 seconds
         DATA  04,  00,   10,   $FF,    01  'Row 19 Take picture (turn on LED and off current)
-	DATA  04,  00,   20,   $FF,    98  'Row 20 Turn on oscillator
+   DATA  04,  00,   20,   $FF,    98  'Row 20 Turn on oscillator
 
-	DATA  05,  00,   00,   $FF,    01  'Row 21 Take a photo (turn off oscillator) 
-	DATA  05,  00,   10,   $FF     06  'Row 23 Turn on and Measure current for 20 seconds
+   DATA  05,  00,   00,   $FF,    01  'Row 21 Take a photo (turn off oscillator)
+   DATA  05,  00,   10,   $FF,     06  'Row 23 Turn on and Measure current for 20 seconds
         DATA  05,  00,   10,   $FF,    01  'Row 24 Take picture (turn on LED and off current)
-	DATA  05,  00,   20,   $FF,    98  'Row 25 Turn on oscillator
+   DATA  05,  00,   20,   $FF,    98  'Row 25 Turn on oscillator
 
-	DATA  05,  23,   59,   $FF,    99  'Row 26 Loop back to day 1
+   DATA  05,  23,   59,   $FF,    99  'Row 26 Loop back to day 1
 
 ' figure out data storage
