@@ -389,7 +389,13 @@ HeartBeatReturn:
     IF UserVar0 = "9" THEN PayloadTestP9
     IF UserVar0 = "6" THEN PayloadTestP11
     IF UserVar0 = "5" THEN PayloadTestP12
-    IF UserVar0 = "0" THEN PayloadTestoff            'Payload Board Circuit test 2
+    IF UserVar0 = "1" THEN PayloadTestP1
+    IF UserVar0 = "2" THEN PayloadTestP2
+    IF UserVar0 = "3" THEN PayloadTestP3
+    IF UserVar0 = "4" THEN PayloadTestP4
+    IF UserVar0 = "5" THEN PayloadTestP5
+    IF UserVar0 = "7" THEN PayloadTestP7
+    IF UserVar0 = "0" THEN PayloadTestoff          'Payload Board Circuit test 2
     IF UserVar0 =$20 THEN PayloadOptionsText
     IF UserVar0 =CR THEN PayloadOptionsText
                      'Exit Payload Board Test and Load
@@ -431,6 +437,32 @@ PayloadTestP12:
      DEBUG CR,"All Current Source On",CR
      I2COUT InternI2c, PCF8574Address, [%10111111]           '
      GOTO PayloadOptionsText
+
+PayloadTestP1:
+    DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 2 seconds", CR
+    I2COUT InternI2c, PCF8574Address, [%11111110]
+    GOTO PayloadOptionsText
+PayloadTestP2:
+    DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 5 seconds", CR
+    I2COUT InternI2c, PCF8574Address, [%11111110]
+    GOTO PayloadOptionsText
+PayloadTestP3:
+    DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 10 seconds", CR
+    I2COUT InternI2c, PCF8574Address, [%11111110]
+    GOTO PayloadOptionsText
+PayloadTestP4:
+    DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 20 seconds", CR
+    I2COUT InternI2c, PCF8574Address, [%11111110]
+    GOTO PayloadOptionsText
+PayloadTestP5:
+    DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 30 seconds", CR
+    I2COUT InternI2c, PCF8574Address, [%11111110]
+    GOTO PayloadOptionsText
+PayloadTestP7:
+    DEBUG CR, "Turn on Oscillator", CR
+    I2COUT InternI2c, PCF8574Address, [%11111101]
+    GOTO PayloadOptionsText
+
 PayloadTestOff:
      DEBUG CR,"Pins 8 and 9 High",CR
      I2COUT InternI2c, PCF8574Address, [%10111000]           '
