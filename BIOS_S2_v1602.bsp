@@ -547,27 +547,27 @@ P3vector:  GOTO ReturnBack      'back to calling routine
 
 	DATA  01,  00,   00,   $FF,    01  'Row 1  Take photo
         DATA  01,  00,   10,   $FF,    02  'Row 2  Turn on and Measure current for 2 seconds
-        DATA  01,  00,   10,   $FF,    01  'Row 4  Take picture (turn on LED and off current)
+        DATA  01,  00,   10,   $FF,    01  'Row 4  Take photo (turn on LED and off current)
         DATA  01,  00,   20,   $FF     98  'Row 5  Turn on oscillator
 
         DATA  02,  00,   00,   $FF,    01  'Row 6  Take a photo (turn off oscillator) 
 	DATA  02,  00,   10,   $FF     03  'Row 8  Turn on and Measure current for 5 seconds
-        DATA  02,  00,   10,   $FF,    01  'Row 9  Take picture (turn on LED and off current)
+        DATA  02,  00,   10,   $FF,    01  'Row 9  Take photo (turn on LED and off current)
 	DATA  02,  00,   20,   $FF,    98  'Row 10 Turn on oscillator
 
 	DATA  03,  00,   00,   $FF,    01  'Row 11 Take a photo (turn off oscillator) 
 	DATA  03,  00,   10,   $FF     04  'Row 13 Turn on and Measure current for 10 seconds
-        DATA  03,  00,   10,   $FF,    01  'Row 14 Take picture (turn on LED and off current)
+        DATA  03,  00,   10,   $FF,    01  'Row 14 Take photo (turn on LED and off current)
 	DATA  03,  00,   20,   $FF,    98  'Row 15 Turn on oscillator
 
 	DATA  04,  00,   00,   $FF,    01  'Row 16 Take a photo (turn off oscillator) 
 	DATA  04,  00,   10,   $FF     05  'Row 18 Turn on and Measure current for 20 seconds
-        DATA  04,  00,   10,   $FF,    01  'Row 19 Take picture (turn on LED and off current)
+        DATA  04,  00,   10,   $FF,    01  'Row 19 Take photo (turn on LED and off current)
 	DATA  04,  00,   20,   $FF,    98  'Row 20 Turn on oscillator
 
 	DATA  05,  00,   00,   $FF,    01  'Row 21 Take a photo (turn off oscillator) 
 	DATA  05,  00,   10,   $FF     06  'Row 23 Turn on and Measure current for 20 seconds
-        DATA  05,  00,   10,   $FF,    01  'Row 24 Take picture (turn on LED and off current)
+        DATA  05,  00,   10,   $FF,    01  'Row 24 Take photo (turn on LED and off current)
 	DATA  05,  00,   20,   $FF,    98  'Row 25 Turn on oscillator
 
 	DATA  05,  23,   59,   $FF,    99  'Row 26 Loop back to day 1
