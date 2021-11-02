@@ -479,6 +479,7 @@ Event2: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and
   FOR UserVar3 from 1 TO 2:
     I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
     DATA UserVar0
+    DEBUG UserVar0
     PAUSE 1000
   GOSUB Event1 'take photo immediately
   tempReg0 = 4
@@ -489,6 +490,7 @@ Event3: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and
   FOR UserVar3 from 1 TO 5:
     I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
     DATA UserVar0
+    DEBUG UserVar0
     PAUSE 1000
   GOSUB Event1 'take photo immediately
   tempReg0 = 4
@@ -500,6 +502,7 @@ Event4: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and
   FOR UserVar3 from 1 TO 10:
     I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
     DATA UserVar0
+    DEBUG UserVar0
     PAUSE 1000
   GOSUB Event1 'take photo immediately
   tempReg0 = 4
@@ -511,6 +514,7 @@ Event5: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and
   FOR UserVar3 from 1 TO 20:
     I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
     DATA UserVar0
+    DEBUG UserVar0
     PAUSE 1000
   GOSUB Event1 'take photo immediately
   tempReg0 = 4
@@ -522,6 +526,7 @@ Event6: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and
   FOR UserVar3 from 1 TO 30:
     I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
     DATA UserVar0
+    DEBUG UserVar0
     PAUSE 1000
   GOSUB Event1 'take photo immediately
   tempReg0 = 4
