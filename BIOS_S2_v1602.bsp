@@ -1,3 +1,4 @@
+
 ' {$STAMP BS2P}
 ' {$PORT COM3}
 ' {$PBASIC 2.5}
@@ -439,7 +440,7 @@ FoundEvent:
 ' PIN DO0 = voltage regulator
 ' PIN DO3 and 4 = LED
 ' PIN DO6 and 7 = oscillator
-' PIN IO0 = microswitch ' shut down experiment when receive input
+' PIN IO0 = microswitch ' shut down experiment when receive input   'IMPLEMENT LATER
 ' current sensor connected to 5V GND SCL SDA  ' read data sheet
 
 
@@ -457,7 +458,7 @@ Event0: DEBUG CR, "event0", CR                                                  
   RUN 0
 
 Event1: DEBUG CR,"Take Picture/LED",CR                                                                     ' Event 1 (Photo)
-  I2COUT InternI2c, PCF8574Address, [%11111111]        '
+  I2COUT InternI2c, PCF8574Address, [%11100111]        '
 '   Take a High Resolution Photo of the Chamber
   PUT    CameraRes,Camera640       'Template default
   PUT    CameraQua,CameraNormal     'set to Normal
@@ -469,7 +470,7 @@ Event1: DEBUG CR,"Take Picture/LED",CR                                          
 
 ' After taking the photo, it goes to this function:
 TakePhotoReturn:
-  I2COUT InternI2c, PCF8574Address, [%10110000]
+  I2COUT InternI2c, PCF8574Address, [%11111111]
   tempReg0 = 4 'Destination Index (EventTableReturn)
   RUN 0        'Destination Slot
 
@@ -479,9 +480,9 @@ Event2: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and
     I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
     DATA UserVar0
     PAUSE 1000
+  GOSUB Event1 'take photo immediately
   tempReg0 = 4
   RUN 0
-  GOSUB Event1 'take photo immediately
 
 Event3: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 3 (measure 5 seconds)
   I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
@@ -489,9 +490,10 @@ Event3: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and
     I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
     DATA UserVar0
     PAUSE 1000
+  GOSUB Event1 'take photo immediately
   tempReg0 = 4
   RUN 0
-  GOSUB Event1 'take photo immediately
+  
 
 Event4: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 4 (measure 10 seconds)
   I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
@@ -499,9 +501,10 @@ Event4: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and
     I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
     DATA UserVar0
     PAUSE 1000
+  GOSUB Event1 'take photo immediately
   tempReg0 = 4
   RUN 0
-  GOSUB Event1 'take photo immediately
+  
 
 Event5: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 5 (measure 20 seconds)
   I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
@@ -509,9 +512,10 @@ Event5: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and
     I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
     DATA UserVar0
     PAUSE 1000
+  GOSUB Event1 'take photo immediately
   tempReg0 = 4
   RUN 0
-  GOSUB Event1 'take photo immediately
+  
 
 Event6: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 6 (measure 30 seconds)
   I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
@@ -519,14 +523,15 @@ Event6: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and
     I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
     DATA UserVar0
     PAUSE 1000
+  GOSUB Event1 'take photo immediately
   tempReg0 = 4
   RUN 0
-  GOSUB Event1 'take photo immediately
+  
 
 Event98: DEBUG CR, "Turn on Oscillator", CR                                                                 ' Event 98 (oscillator)
   FOR UserVar3 from 1 TO 30:
     WRITE UserVar3, 0
-  I2COUT InternI2c, PCF8574Address, [%11111101]
+  I2COUT InternI2c, PCF8574Address, [%00111111]
   tempReg0 = 4
   RUN 0
 
