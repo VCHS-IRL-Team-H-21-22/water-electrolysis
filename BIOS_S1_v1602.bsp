@@ -386,7 +386,6 @@ PayloadOptions:
 HeartBeatReturn:
     DEBUG CR, "HeatBeat Done. Payload test number? > ",CR
     IF UserVar0 = "8" THEN PayloadTestP8              'Payload Board Circuit test 1
-    IF UserVar0 = "9" THEN PayloadTestP9
     IF UserVar0 = "6" THEN PayloadTestP11
     IF UserVar0 = "5" THEN PayloadTestP12
     IF UserVar0 = "1" THEN PayloadTestP1
@@ -417,10 +416,7 @@ PayloadTestP8:
      DEBUG CR,"Test Pump",CR
      I2COUT InternI2c, PCF8574Address, [%00111000]           '
      GOTO PayloadOptionsText
-PayloadTestP9:
-     DEBUG CR,"Test Vibrator",CR
-     I2COUT InternI2c, PCF8574Address, [%10110000]           '
-     GOTO PayloadOptionsText
+
 PayloadTestP11:
      DEBUG CR, "Take Picture", CR
      I2COUT InternI2c, PCF8574Address, [%11111111]           '
@@ -487,6 +483,8 @@ PayloadTestP7:
     DEBUG CR, "Turn on Oscillator", CR
     I2COUT InternI2c, PCF8574Address, [%11111101]
     GOTO PayloadOptionsText
+    tempReg0 = 4
+    RUN 0
 
 PayloadTestOff:
      DEBUG CR,"Pins 8 and 9 High",CR
