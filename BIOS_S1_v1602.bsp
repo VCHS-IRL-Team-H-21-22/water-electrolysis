@@ -479,22 +479,27 @@ PayloadTestP5:
     tempReg0 = 4
     RUN 0
     GOTO PayloadOptionsText
+    
 PayloadTestP7:
     DEBUG CR, "Turn on Oscillator", CR
     I2COUT InternI2c, PCF8574Address, [%11111101]
-    GOTO PayloadOptionsText
     tempReg0 = 4
     RUN 0
+    GOTO PayloadOptionsText
 
 PayloadTestOff:
-     DEBUG CR,"Pins 8 and 9 High",CR
-     I2COUT InternI2c, PCF8574Address, [%10111000]           '
-     GOTO PayloadOptionsText
+    DEBUG CR,"Pins 8 and 9 High",CR
+    I2COUT InternI2c, PCF8574Address, [%10111000] 
+    tempReg0 = 4
+    RUN 0
+    GOTO PayloadOptionsText
+     
+     
 PayloadExit:
-     TempReg0=0 'Call Index: SystemInitReturn
-     TempReg1=0 'Call Index: SystemInitReturn
-     TempReg3=0 'Call Slot: Main
-     GOTO GotoSlot
+    TempReg0=0 'Call Index: SystemInitReturn
+    TempReg1=0 'Call Index: SystemInitReturn
+    TempReg3=0 'Call Slot: Main
+    GOTO GotoSlot
 
 
 
