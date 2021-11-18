@@ -416,17 +416,17 @@ FoundEvent:
 
   STORE DataStorage
 ' Feel free to change the event names to actions, or keep it as 1,2,3,4. This is preference.
-  BRANCH UserVar3,[
-    Event0_NOTHING,                     'Event 0 (do nothing)
-    Event1_PICTURE,                     'Event 1 (take photo)
-    Event2_MEASURE2,                    'Event 2 (measure 2 seconds)
-    Event3_MEASURE5,                    'Event 3 (measure 5 sec)
-    Event4_MEASURE10,                   'Event 4 (measure 10 sec)
-    Event5_MEASURE20,                   'Event 5 (measure 20 sec)
-    Event6_MEASURE30,                   'Event 6 (measure 30 sec)
-    Event7_OSCILLATOR,                  'Event 98 (turn on oscillator)
-    Event8_RESET_TIME                   'Event 99 (reset time)
-  ]
+  BRANCH UserVar3,
+  [Event0_NOTHING,                     'Event 0 (do nothing)
+   Event1_PICTURE,                     'Event 1 (take photo)
+   Event2_MEASURE2,                    'Event 2 (measure 2 seconds)
+   Event3_MEASURE5,                    'Event 3 (measure 5 sec)
+   Event4_MEASURE10,                   'Event 4 (measure 10 sec)
+   Event5_MEASURE20,                   'Event 5 (measure 20 sec)
+   Event6_MEASURE30,                   'Event 6 (measure 30 sec)
+   Event7_OSCILLATOR,                  'Event 98 (turn on oscillator)
+   Event8_RESET_TIME]                   'Event 99 (reset time)
+
 
 ' If BRANCHing with UserVar3 isn't working, then it will fall through to this:
   UserVar3 = 0                 'Error
@@ -482,11 +482,12 @@ TakePhotoReturn:
 Event2_MEASURE2: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 2 (measure 2 seconds)
   I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
   FOR UserVar3 = 1 TO 2:
-    I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
-    DATA UserVar0
+    I2CIN 0, $40, [UserVar0]             ' pin = 0 id = %100 ?
+    'DATA UserVar0
     DEBUG UserVar0
     PAUSE 1000
-  GOSUB Event1 'take photo immediately
+  NEXT
+  GOSUB Event1_PICTURE 'take photo immediately
   tempReg0 = 4
   RUN 0
 
@@ -494,11 +495,12 @@ Event2_MEASURE2: DEBUG CR, "Turn on current across electrodes and Turn off Oscil
 Event3_MEASURE5: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 3 (measure 5 seconds)
   I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
   FOR UserVar3 = 1 TO 5:
-    I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
-    DATA UserVar0
+    I2CIN 0, $40, [UserVar0]            ' pin = 0 id = %100 ?
+    'DATA UserVar0
     DEBUG UserVar0
     PAUSE 1000
-  GOSUB Event1 'take photo immediately
+  NEXT
+  GOSUB Event1_PICTURE 'take photo immediately
   tempReg0 = 4
   RUN 0
 
@@ -506,11 +508,12 @@ Event3_MEASURE5: DEBUG CR, "Turn on current across electrodes and Turn off Oscil
 Event4_MEASURE10: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 4 (measure 10 seconds)
   I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
   FOR UserVar3 = 1 TO 10:
-    I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
-    DATA UserVar0
+    I2CIN 0, $40, [UserVar0]             ' pin = 0 id = %100 ?
+    'DATA UserVar0
     DEBUG UserVar0
     PAUSE 1000
-  GOSUB Event1 'take photo immediately
+  NEXT
+  GOSUB Event1_PICTURE 'take photo immediately
   tempReg0 = 4
   RUN 0
 
@@ -518,11 +521,12 @@ Event4_MEASURE10: DEBUG CR, "Turn on current across electrodes and Turn off Osci
 Event5_MEASURE20: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 5 (measure 20 seconds)
   I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
   FOR UserVar3 = 1 TO 20:
-    I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
-    DATA UserVar0
+    I2CIN 0, $40, [UserVar0]             ' pin = 0 id = %100 ?
+    'DATA UserVar0
     DEBUG UserVar0
     PAUSE 1000
-  GOSUB Event1 'take photo immediately
+  NEXT
+  GOSUB Event1_PICTURE 'take photo immediately
   tempReg0 = 4
   RUN 0
 
@@ -530,19 +534,18 @@ Event5_MEASURE20: DEBUG CR, "Turn on current across electrodes and Turn off Osci
 Event6_MEASURE30: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 6 (measure 30 seconds)
   I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
   FOR UserVar3 = 1 TO 30:
-    I2CIN 0, $0x40, UserVar0             ' pin = 0 id = %100 ?
-    DATA UserVar0
+    I2CIN 0, $40, [UserVar0]             ' pin = 0 id = %100 ?
+    'DATA UserVar0
     DEBUG UserVar0
     PAUSE 1000
-  GOSUB Event1 'take photo immediately
+  NEXT
+  GOSUB Event1_PICTURE 'take photo immediately
   tempReg0 = 4
   RUN 0
 
 
-Event7_OSCILLATOR: DEBUG CR, "Turn on Oscillator", CR                                                                 ' Event 7 (oscillator)
-  FOR UserVar3 = 1 TO 30:
-    WRITE UserVar3, 0
-  I2COUT InternI2c, PCF8574Address, [%00111111]
+Event7_OSCILLATOR: DEBUG CR, "Turn on Oscillator", CR
+  I2COUT InternI2c, PCF8574Address, [%00111111]                                                                  ' Event 7 (oscillator)
   tempReg0 = 4
   RUN 0
 
@@ -573,7 +576,7 @@ P2vector:  GOTO ReturnBack      'back to calling routine
 P3vector:  GOTO ReturnBack      'back to calling routine
 
 
-                                                                                 `
+
          '    Day  Hour  Min   Tag  EventByte
  ETable DATA  00,  00,   00,   $FF,    00  'Row 0  Do Nothing
         DATA  01,  00,   00,   $FF,    01  'Row 1  Take photo

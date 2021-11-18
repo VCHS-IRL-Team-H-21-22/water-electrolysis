@@ -438,8 +438,9 @@ PayloadTestP1:
     DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 2 seconds", CR
     I2COUT InternI2c, PCF8574Address, [%11111110]
     FOR UserVar3 = 1 TO 2:
-      I2CIN 0, $0x40, UserVar0
+      I2CIN 0, $40, [UserVar0]
       DEBUG UserVar0
+    NEXT
     tempReg0 = 4
     RUN 0
     GOTO PayloadOptionsText
@@ -447,8 +448,9 @@ PayloadTestP2:
     DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 5 seconds", CR
     I2COUT InternI2c, PCF8574Address, [%11111110]
     FOR UserVar3 = 1 TO 5:
-      I2CIN 0, $0x40, UserVar0
+      I2CIN 0, $40, [UserVar0]
       DEBUG UserVar0
+    NEXT
     tempReg0 = 4
     RUN 0
     GOTO PayloadOptionsText
@@ -456,8 +458,9 @@ PayloadTestP3:
     DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 10 seconds", CR
     I2COUT InternI2c, PCF8574Address, [%11111110]
     FOR UserVar3 = 1 TO 10:
-      I2CIN 0, $0x40, UserVar0
+      I2CIN 0, $40, [UserVar0]
       DEBUG UserVar0
+    NEXT
     tempReg0 = 4
     RUN 0
     GOTO PayloadOptionsText
@@ -465,8 +468,9 @@ PayloadTestP4:
     DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 20 seconds", CR
     I2COUT InternI2c, PCF8574Address, [%11111110]
     FOR UserVar3 = 1 TO 20:
-      I2CIN 0, $0x40, UserVar0
+      I2CIN 0, $40, [UserVar0]
       DEBUG UserVar0
+    NEXT
     tempReg0 = 4
     RUN 0
     GOTO PayloadOptionsText
@@ -474,8 +478,9 @@ PayloadTestP5:
     DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 30 seconds", CR
     I2COUT InternI2c, PCF8574Address, [%11111110]
     FOR UserVar3 = 1 TO 30:
-      I2CIN 0, $0x40, UserVar0
+      I2CIN 0, $40, [UserVar0]
       DEBUG UserVar0
+    NEXT
     tempReg0 = 4
     RUN 0
     GOTO PayloadOptionsText
