@@ -1,7 +1,6 @@
-
 ' {$STAMP BS2P}
-' {$PORT COM3}
 ' {$PBASIC 2.5}
+' {$PORT COM3}
 
 
 version  CON 1602
@@ -427,7 +426,7 @@ FoundEvent:
     Event6_MEASURE30,                   'Event 6 (measure 30 sec)
     Event7_OSCILLATOR,                  'Event 98 (turn on oscillator)
     Event8_RESET_TIME                   'Event 99 (reset time)
-  ]                     
+  ]
 
 ' If BRANCHing with UserVar3 isn't working, then it will fall through to this:
   UserVar3 = 0                 'Error
@@ -502,7 +501,7 @@ Event3_MEASURE5: DEBUG CR, "Turn on current across electrodes and Turn off Oscil
   GOSUB Event1 'take photo immediately
   tempReg0 = 4
   RUN 0
-  
+
 
 Event4_MEASURE10: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 4 (measure 10 seconds)
   I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
@@ -514,7 +513,7 @@ Event4_MEASURE10: DEBUG CR, "Turn on current across electrodes and Turn off Osci
   GOSUB Event1 'take photo immediately
   tempReg0 = 4
   RUN 0
-  
+
 
 Event5_MEASURE20: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 5 (measure 20 seconds)
   I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
@@ -526,7 +525,7 @@ Event5_MEASURE20: DEBUG CR, "Turn on current across electrodes and Turn off Osci
   GOSUB Event1 'take photo immediately
   tempReg0 = 4
   RUN 0
-  
+
 
 Event6_MEASURE30: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 6 (measure 30 seconds)
   I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
@@ -538,7 +537,7 @@ Event6_MEASURE30: DEBUG CR, "Turn on current across electrodes and Turn off Osci
   GOSUB Event1 'take photo immediately
   tempReg0 = 4
   RUN 0
-  
+
 
 Event7_OSCILLATOR: DEBUG CR, "Turn on Oscillator", CR                                                                 ' Event 7 (oscillator)
   FOR UserVar3 = 1 TO 30:
