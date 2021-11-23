@@ -438,7 +438,7 @@ PayloadTestP1:
     DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 2 seconds", CR
     I2COUT InternI2c, PCF8574Address, [%11111110]
     DEBUG "hi"
-    FOR UserVar3 = 1 TO 2:
+    FOR UserVar3 = 1 TO 2:         ' need to read the data sheet - Canis and Aleckahsiu
       DEBUG "hi"
       I2CIN 0, $40, [UserVar0]
       DEBUG UserVar0
