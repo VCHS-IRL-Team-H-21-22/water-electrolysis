@@ -1,6 +1,6 @@
 ' {$STAMP BS2P}
 ' {$PBASIC 2.5}
-' {$PORT COM3}
+' {$PORT COM4}
 
 
 version  CON 1602
@@ -25,7 +25,7 @@ version  CON 1602
 '******************  Start of System Global lables *******************
 '     Conditional Assemblies
 '
-#DEFINE FlyConfig = 1            '1=Set to Flight Configuration, 0=Test Configuration
+#DEFINE FlyConfig = 0            '1=Set to Flight Configuration, 0=Test Configuration
 #DEFINE fastclock = 0             '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
 #DEFINE testreset = 1              '1=test reset and reset count
 #DEFINE SaySlot   = 1              '1=Say Slot with vector
@@ -437,9 +437,12 @@ PayloadTestP12:
 PayloadTestP1:
     DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 2 seconds", CR
     I2COUT InternI2c, PCF8574Address, [%11111110]
+    DEBUG "hi"
     FOR UserVar3 = 1 TO 2:
+      DEBUG "hi"
       I2CIN 0, $40, [UserVar0]
       DEBUG UserVar0
+      PAUSE 1000
     NEXT
     tempReg0 = 4
     RUN 0
@@ -448,8 +451,9 @@ PayloadTestP2:
     DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 5 seconds", CR
     I2COUT InternI2c, PCF8574Address, [%11111110]
     FOR UserVar3 = 1 TO 5:
-      I2CIN 0, $40, [UserVar0]
-      DEBUG UserVar0
+      I2CIN 8, $40, [UserVar4]
+      DEBUG "Current measurement: ", UserVar4, CR
+      PAUSE 1000
     NEXT
     tempReg0 = 4
     RUN 0
@@ -460,6 +464,7 @@ PayloadTestP3:
     FOR UserVar3 = 1 TO 10:
       I2CIN 0, $40, [UserVar0]
       DEBUG UserVar0
+      PAUSE 1000
     NEXT
     tempReg0 = 4
     RUN 0
@@ -470,6 +475,7 @@ PayloadTestP4:
     FOR UserVar3 = 1 TO 20:
       I2CIN 0, $40, [UserVar0]
       DEBUG UserVar0
+      PAUSE 1000
     NEXT
     tempReg0 = 4
     RUN 0
@@ -480,6 +486,7 @@ PayloadTestP5:
     FOR UserVar3 = 1 TO 30:
       I2CIN 0, $40, [UserVar0]
       DEBUG UserVar0
+      PAUSE 1000
     NEXT
     tempReg0 = 4
     RUN 0
