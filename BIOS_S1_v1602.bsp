@@ -61,6 +61,7 @@ Missionmin          CON Missionsec+1         'Missionmin          clock min coun
 Missionhour         CON Missionmin+1         'Missionhour         lock hour count here 0-23
 Missionday          CON Missionhour+1        'Missionday          lock day count here 0-xx
 TempStatus          CON Missionday+1         'Temp storage for test status routines
+
 '
 '     'ETC....
 '
@@ -287,11 +288,11 @@ text        VAR Byte(8)      'make array for text
 '  the value may be destroyed by a Call to the BIOS or BIOS operation
 '
 UserVar0    VAR Byte         'user Varible space - Should be same across all slots
-UserVar1    VAR Byte         'user Varible space - Should be same across all slots
+'UserVar1    VAR Byte         'user Varible space - Should be same across all slots
 UserVar2    VAR Byte         'user Varible space - Should be same across all slots
-UserVar3    VAR Byte         'user Varible space - Should be same across all slots
-UserVar4    VAR Byte         'user Varible space - Should be same across all slots
-UserVar5    VAR Byte         'user Varible space - Should be same across all slots
+UserVar3    VAR Word         'user Varible space - Should be same across all slots
+UserVar4    VAR Word         'user Varible space - Should be same across all slots
+'UserVar5    VAR Byte         'user Varible space - Should be same across all slots
 
 '
 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -365,8 +366,8 @@ ReturnBack:
 PayloadTest:  'Payload test procedures and flight preparation utilities (priming, etc)
   PayloadOptionsText:
   DEBUG CR
-  DEBUG "Payload Pin 8 On/Off (toggle) = 8",CR
-  DEBUG "Payload Pin 9 On/Off (toggle) = 9",CR
+  DEBUG "Enter Payload test number as definied in Slot 1",CR
+  'DEBUG "Payload Pin 9 On/Off (toggle) = 9",CR
   DEBUG "All Payload Pins Off = 0",CR
   DEBUG "Exit Payload Test = e",CR
 Ready:
@@ -436,61 +437,55 @@ PayloadTestP12:
 
 PayloadTestP1:
     DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 2 seconds", CR
-    I2COUT InternI2c, PCF8574Address, [%11111110]
-    DEBUG "hi"
-    FOR UserVar3 = 1 TO 2:         ' need to read the data sheet - Canis and Aleckahsiu
-      DEBUG "hi"
-      I2CIN 0, $40, [UserVar0]
-      DEBUG UserVar0
-      PAUSE 1000
-    NEXT
-    tempReg0 = 4
-    RUN 0
-    GOTO PayloadOptionsText
-PayloadTestP2:
-    DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 5 seconds", CR
-    I2COUT InternI2c, PCF8574Address, [%11111110]
-    FOR UserVar3 = 1 TO 5:
-      I2CIN 8, $40, [UserVar4]
+    ' I2COUT InternI2c, PCF8574Address, [%11111110] we're not using DO for payload tests
+    'I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
+    'I2COUT 8, $40, $05, [$FF] ' set calibration registure
+    FOR UserVar3 = 1 TO 2:
+      I2CIN 8, $40, [DEC UserVar4]
       DEBUG "Current measurement: ", UserVar4, CR
       PAUSE 1000
     NEXT
     tempReg0 = 4
     RUN 0
     GOTO PayloadOptionsText
+    ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
+    ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
+        ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
+    ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
+
+
+
+PayloadTestP2:
+    DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 5 seconds", CR
+    ' I2COUT InternI2c, PCF8574Address, [%11111110] we're not using DO for payload tests
+    I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
+    I2CIN 8, $40, $00, [UserVar2]
+    DEBUG "Configuration register: ", DEC3 UserVar2, CR
+    I2COUT 8, $40, $05, [$FF] ' set calibration registure
+    I2CIN 8, $40, $05, [UserVar2]
+    DEBUG "Calibration register: ", DEC3 UserVar2, CR
+
+
+    DEBUG CR, "Registers set", CR
+    FOR UserVar2 = 1 TO 5:
+      DEBUG "Loop", CR
+      I2CIN 8, $40, $04, [UserVar3] ' try with and without DEC you know what i'm saying
+      DEBUG "Current measurement: ",  UserVar3, CR   ' current is the reading * 409.6
+      PAUSE 1000
+    NEXT
+    tempReg0 = 4
+    RUN 0
+    GOTO PayloadOptionsText
+
+        ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
+    ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
+        ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
+    ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
+        ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
+    ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
 PayloadTestP3:
-    DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 10 seconds", CR
-    I2COUT InternI2c, PCF8574Address, [%11111110]
-    FOR UserVar3 = 1 TO 10:
-      I2CIN 0, $40, [UserVar0]
-      DEBUG UserVar0
-      PAUSE 1000
-    NEXT
-    tempReg0 = 4
-    RUN 0
-    GOTO PayloadOptionsText
 PayloadTestP4:
-    DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 20 seconds", CR
-    I2COUT InternI2c, PCF8574Address, [%11111110]
-    FOR UserVar3 = 1 TO 20:
-      I2CIN 0, $40, [UserVar0]
-      DEBUG UserVar0
-      PAUSE 1000
-    NEXT
-    tempReg0 = 4
-    RUN 0
-    GOTO PayloadOptionsText
 PayloadTestP5:
-    DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 30 seconds", CR
-    I2COUT InternI2c, PCF8574Address, [%11111110]
-    FOR UserVar3 = 1 TO 30:
-      I2CIN 0, $40, [UserVar0]
-      DEBUG UserVar0
-      PAUSE 1000
-    NEXT
-    tempReg0 = 4
-    RUN 0
-    GOTO PayloadOptionsText
 
 PayloadTestP7:
     DEBUG CR, "Turn on Oscillator", CR
@@ -503,6 +498,9 @@ PayloadTestOff:
     DEBUG CR,"Pins 8 and 9 High",CR
     I2COUT InternI2c, PCF8574Address, [%10111000]
     tempReg0 = 4
+
+
+
     RUN 0
     GOTO PayloadOptionsText
 
