@@ -1,0 +1,36 @@
+' {$STAMP BS2p}
+' {$PBASIC 2.5}
+' {$PORT COM3}
+
+SDA PIN 0
+SCL PIN SDA+1
+
+slaveID CON $40
+UserVar2 VAR Word
+UserVar3 VAR Word
+ConfigRegister VAR Word
+
+ConfigRegister = 69
+
+DEBUG CR, BIN $FAFA
+DEBUG CR, "11/26/2021", CR
+DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 5 seconds", CR
+' I2COUT InternI2c, PCF8574Address, [%11111110] we're not using DO for payload tests
+I2COUT SDA, slaveID, $0000, [$399F] 'set configuration register
+I2CIN SDA, slaveID, $0000, [UserVar2]
+DEBUG "Configuration register: ", BIN UserVar2, CR
+I2COUT SDA, slaveID, $05, [$FFFF] ' set calibration registure
+I2COUT SDA, slaveID, $05, [$0000] ' set calibration registure
+I2CIN SDA, slaveID, $05, [UserVar2]
+DEBUG "Calibration register: ", DEC3 UserVar2, CR
+
+DEBUG CR, "Registers set", CR
+FOR UserVar2 = 1 TO 5:
+  DEBUG "Loop", CR
+  I2CIN SDA, slaveID, $04, [UserVar3] ' try with and without DEC you know what i'm saying
+  DEBUG "Current measurement: ",  BIN UserVar3, CR   ' current is the reading * 409.6
+  PAUSE 1000
+NEXT
+
+
+DEBUG CR, "END OF PROGRAM", CR
