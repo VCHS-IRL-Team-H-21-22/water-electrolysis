@@ -1,6 +1,6 @@
 ' {$STAMP BS2P}
 ' {$PBASIC 2.5}
-' {$PORT COM4}
+' {$PORT COM3}
 
 
 version  CON 1602
@@ -395,6 +395,7 @@ HeartBeatReturn:
     IF UserVar0 = "4" THEN PayloadTestP4
     IF UserVar0 = "5" THEN PayloadTestP5
     IF UserVar0 = "7" THEN PayloadTestP7
+    IF UserVar0 = "9" THEN PayloadTestP9
     IF UserVar0 = "0" THEN PayloadTestoff          'Payload Board Circuit test 2
     IF UserVar0 =$20 THEN PayloadOptionsText
     IF UserVar0 =CR THEN PayloadOptionsText
@@ -448,12 +449,32 @@ PayloadTestP1:
     tempReg0 = 4
     RUN 0
     GOTO PayloadOptionsText
-    ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
-    ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
-        ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
-    ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
 
+'===========================================================================================================================================================================================
+PayloadTestP9:
+  DEBUG CR, BIN $FAFA
+  DEBUG CR, "11/26/2021", CR
+  DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 5 seconds", CR
+  'I2COUT InternI2c, PCF8574Address, [%11111110] we're not using DO for payload tests
+  'I2COUT SDA, slaveID, $00, [$399F] 'set configuration register
+  I2CIN 8, $40, $00, [UserVar2]
+  DEBUG "Configuration register: ", BIN UserVar2, CR
+  'I2COUT SDA, slaveID, $05, [$FFFF] ' set calibration registure
+  I2COUT 8, $40, $05, [$0000] ' set calibration registure
+  I2CIN 8, $40, $05, [UserVar2]
+  DEBUG "Calibration register: ", DEC3 UserVar2, CR
 
+  DEBUG CR, "Registers set", CR
+  FOR UserVar2 = 1 TO 5:
+    DEBUG "Loop", CR
+    I2CIN 8, $40, $04, [UserVar3] ' try with and without DEC you know what i'm saying
+    DEBUG "Current measurement: ",  BIN UserVar3, CR   ' current is the reading * 409.6
+    PAUSE 1000
+  NEXT
+  DEBUG CR, "END OF PROGRAM", CR
+  tempReg0 = 4
+  RUN 0
+  GOTO PayloadOptionsText
 
 PayloadTestP2:
     DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 5 seconds", CR
@@ -477,12 +498,7 @@ PayloadTestP2:
     RUN 0
     GOTO PayloadOptionsText
 
-        ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
-    ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
-        ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
-    ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
-        ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
-    ' {}{{}{}{}{}{{}{}}}}}}}++++++++++++++++++++++++++++++++++
+'===========================================================================================================================================================================================
 PayloadTestP3:
 PayloadTestP4:
 PayloadTestP5:
