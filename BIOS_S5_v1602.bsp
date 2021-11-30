@@ -1,6 +1,6 @@
 ' {$STAMP BS2P}
 ' {$PBASIC 2.5}
-' {$PORT COM3}
+' {$PORT COM6}
 
 
 version  CON 1602

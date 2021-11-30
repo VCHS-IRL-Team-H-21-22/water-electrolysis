@@ -1,6 +1,6 @@
 ' {$STAMP BS2P, BIOS_s1_v1602.bsp, BIOS_s2_v1602.bsp, BIOS_s3_v1602.bsp, BIOS_s4_v1602.bsp, BIOS_s5_v1602.bsp, BIOS_s6_v1602.bsp, BIOS_s7_v1602.bsp}
 ' {$PBASIC 2.5}
-' {$PORT COM3}
+' {$PORT COM6}
 
 
 version  CON 1602
@@ -19,13 +19,12 @@ version  CON 1602
                        'S1 contains test code placeholder
 '
 ' 2012
-' 1. added test for payload interface boards
-' 2. clean slot 0, added time 0,1,2 for clock speed
+' 1. added test for payload interface boards         ' 2. clean slot 0, added time 0,1,2 for clock speed
 '
 '******************  Start of System Global lables *******************
 '     Conditional Assemblies
 '
-#DEFINE FlyConfig = 1            '1=Set to Flight Configuration, 0=Test Configuration
+#DEFINE FlyConfig = 0            '1=Set to Flight Configuration, 0=Test Configuration
 #DEFINE fastclock = 0             '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
 #DEFINE testreset = 1              '1=test reset and reset count
 #DEFINE SaySlot   = 1              '1=Say Slot with vector

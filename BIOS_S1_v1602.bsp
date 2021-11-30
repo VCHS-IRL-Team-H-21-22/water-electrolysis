@@ -1,6 +1,6 @@
 ' {$STAMP BS2P}
 ' {$PBASIC 2.5}
-' {$PORT COM3}
+' {$PORT COM6}
 
 
 version  CON 1602
@@ -25,7 +25,7 @@ version  CON 1602
 '******************  Start of System Global lables *******************
 '     Conditional Assemblies
 '
-#DEFINE FlyConfig = 0            '1=Set to Flight Configuration, 0=Test Configuration
+#DEFINE FlyConfig = 1            '1=Set to Flight Configuration, 0=Test Configuration
 #DEFINE fastclock = 0             '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
 #DEFINE testreset = 1              '1=test reset and reset count
 #DEFINE SaySlot   = 1              '1=Say Slot with vector
@@ -456,21 +456,31 @@ PayloadTestP9:
   DEBUG CR, "11/26/2021", CR
   DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 5 seconds", CR
   'I2COUT InternI2c, PCF8574Address, [%11111110] we're not using DO for payload tests
-  'I2COUT SDA, slaveID, $00, [$399F] 'set configuration register
-  I2CIN 8, $40, $00, [UserVar2]
-  DEBUG "Configuration register: ", BIN UserVar2, CR
+  I2COUT 8, $80, $00, [%00100111, %11111111] 'set configuration register
+  PAUSE 1000
+  I2CIN 8, $80, $00, [UserVar2, UserVar4]
+  DEBUG "Configuration register: ", BIN UserVar2, BIN UserVar4, CR
   'I2COUT SDA, slaveID, $05, [$FFFF] ' set calibration registure
-  I2COUT 8, $40, $05, [$0000] ' set calibration registure
-  I2CIN 8, $40, $05, [UserVar2]
-  DEBUG "Calibration register: ", DEC3 UserVar2, CR
+  I2COUT 8, $80, $05, [$FF, $FF] ' set calibration registure
+  I2CIN 8, $80, $05, [UserVar2, UserVar4]
+  DEBUG "Calibration register: ", BIN UserVar2,BIN UserVar4, CR
 
   DEBUG CR, "Registers set", CR
-  FOR UserVar2 = 1 TO 5:
-    DEBUG "Loop", CR
-    I2CIN 8, $40, $04, [UserVar3] ' try with and without DEC you know what i'm saying
-    DEBUG "Current measurement: ",  BIN UserVar3, CR   ' current is the reading * 409.6
-    PAUSE 1000
-  NEXT
+  'FOR UserVar2 = 1 TO 5:
+  '  DEBUG "Loop", CR
+  '  I2CIN 8, $80, $04, [UserVar3, UserVar4] ' try with and without DEC you know what i'm saying
+  '  TempWord = UserVar3 * 256 + UserVar4
+  '  DEBUG "Current measurement: ",  BIN UserVar3, " ", BIN UserVar4, " = ", DEC TempWord, CR   ' current is the reading / 80000
+  '  PAUSE 1000
+  'Next
+
+  DO:
+   DEBUG "Loop", CR
+   I2CIN 8, $80, $04, [UserVar3, UserVar4] ' try with and without DEC you know what i'm saying
+   TempWord = UserVar3 * 256 + UserVar4
+   DEBUG "Current measurement: ",  BIN UserVar3, " ", BIN UserVar4, " = ", DEC TempWord, CR   ' current is the reading / 80000
+   PAUSE 100
+  LOOP
   DEBUG CR, "END OF PROGRAM", CR
   tempReg0 = 4
   RUN 0

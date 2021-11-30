@@ -1,6 +1,6 @@
 ' {$STAMP BS2P}
 ' {$PBASIC 2.5}
-' {$PORT COM3}
+' {$PORT COM6}
 
 
 version  CON 1602
@@ -455,7 +455,7 @@ FoundEvent:
 ' ----------------------------------------------------------------------------------------------------
 '                                              EVENTS
 ' ----------------------------------------------------------------------------------------------------
-Event0_NOTHING: DEBUG CR, "Nothing", CR                                                                             ' Event 0 (Nothing)
+Event0_NOTHING: DEBUG CR, "Nothing", CR                                                                           ' Event 0 (Nothing)
   tempReg0 = 4
   RUN 0
 
