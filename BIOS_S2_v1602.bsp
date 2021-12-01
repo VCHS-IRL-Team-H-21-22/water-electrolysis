@@ -1,6 +1,6 @@
 ' {$STAMP BS2P}
 ' {$PBASIC 2.5}
-' {$PORT COM6}
+' {$PORT COM4}
 
 
 version  CON 1602
@@ -424,8 +424,9 @@ FoundEvent:
    Event4_MEASURE10,                   'Event 4 (measure 10 sec)
    Event5_MEASURE20,                   'Event 5 (measure 20 sec)
    Event6_MEASURE30,                   'Event 6 (measure 30 sec)
-   Event7_OSCILLATOR,                  'Event 98 (turn on oscillator)
-   Event8_RESET_TIME]                   'Event 99 (reset time)
+   Event7_OSCILLATOR,                  'Event 7 (turn on oscillator)
+   Event8_RESET_TIME,
+   Event9_TEST_DO]
 
 
 ' If BRANCHing with UserVar3 isn't working, then it will fall through to this:
@@ -455,7 +456,8 @@ FoundEvent:
 ' ----------------------------------------------------------------------------------------------------
 '                                              EVENTS
 ' ----------------------------------------------------------------------------------------------------
-Event0_NOTHING: DEBUG CR, "Nothing", CR                                                                           ' Event 0 (Nothing)
+Event0_NOTHING: DEBUG CR, "Nothing", CR
+  I2COUT InternI2c, PCF8574Address, [%0000000] ' everything off                                                                          ' Event 0 (Nothing)
   tempReg0 = 4
   RUN 0
 
@@ -555,6 +557,12 @@ Event8_RESET_TIME: DEBUG CR, "Repeat", CR                                       
   WRITE DurHour,23
   WRITE DurMin, 59
 
+Event9_TEST_DO: DEBUG CR, "TESTING DOO DOO DOOO DOOO DOOOD ODODOO", CR
+  I2COUT InternI2c, PCF8574Address, [%0001000]        ' everything off
+  PAUSE 10000
+   I2COUT InternI2c, PCF8574Address, [%0000000]        ' everything on
+   tempReg0 = 4
+   RUN 0
 ' ----------------------------------------------------------------------------------------------------
 
 
@@ -579,7 +587,7 @@ P3vector:  GOTO ReturnBack      'back to calling routine
 
          '    Day  Hour  Min   Tag  EventByte
  ETable DATA  00,  00,   00,   $FF,    00  'Row 0  Do Nothing
-        DATA  01,  00,   00,   $FF,    01  'Row 1  Take photo
+        DATA  00,  00,   02,   $FF,    09  'Row 1  Take photo
         DATA  01,  00,   10,   $FF,    02  'Row 2  Turn on and Measure current for 2 seconds
        ' DATA  01,  00,   10,   $FF,    01  'Row 4  Take photo (turn on LED and off current)
         DATA  01,  00,   20,   $FF,    98  'Row 5  Turn on oscillator
