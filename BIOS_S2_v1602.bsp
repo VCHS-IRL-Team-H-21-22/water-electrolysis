@@ -425,8 +425,9 @@ FoundEvent:
    Event5_MEASURE20,                   'Event 5 (measure 20 sec)
    Event6_MEASURE30,                   'Event 6 (measure 30 sec)
    Event7_OSCILLATOR,                  'Event 7 (turn on oscillator)
-   Event8_RESET_TIME,
-   Event9_TEST_DO]
+   Event8_RESET_TIME,                   ' loop back to 0
+   Event9_SET_CONFIG,                   ' set the config for the sensor
+   Event10_TEST_DO]
 
 
 ' If BRANCHing with UserVar3 isn't working, then it will fall through to this:
@@ -481,67 +482,81 @@ TakePhotoReturn:
   RUN 0        'Destination Slot
 
 
-Event2_MEASURE2: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 2 (measure 2 seconds)
-  I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
-  FOR UserVar3 = 1 TO 2:
-    I2CIN 0, $40, [UserVar0]             ' pin = 0 id = %100 ?
-    'DATA UserVar0
-    DEBUG UserVar0
-    PAUSE 1000
+Event2_MEASURE2: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 2 seconds", CR      ' Event 2 (measure 2 seconds)
+  I2COUT InternI2c, PCF8574Address, [%11111111] ' remove oscillator and electrodes
+    
+  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
+  I2COUT 8, $40, $05, [$FF] ' set calibration registure
+
+  FOR UserVar2 = 1 TO 2:
+      DEBUG "Loop", CR
+      I2CIN 8, $40, $04, [UserVar3] 
+      DEBUG "Current measurement: ",  UserVar3, CR
+      PAUSE 1000
   NEXT
-  GOSUB Event1_PICTURE 'take photo immediately
   tempReg0 = 4
   RUN 0
 
 
-Event3_MEASURE5: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 3 (measure 5 seconds)
-  I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
-  FOR UserVar3 = 1 TO 5:
-    I2CIN 0, $40, [UserVar0]            ' pin = 0 id = %100 ?
-    'DATA UserVar0
-    DEBUG UserVar0
-    PAUSE 1000
+Event3_MEASURE5: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 5 seconds", CR      ' Event 3 (measure 5 seconds)
+  I2COUT InternI2c, PCF8574Address, [%11111111] ' remove oscillator and electrodes
+    
+  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
+  I2COUT 8, $40, $05, [$FF] ' set calibration registure
+
+  FOR UserVar2 = 1 TO 5:
+      DEBUG "Loop", CR
+      I2CIN 8, $40, $04, [UserVar3] 
+      DEBUG "Current measurement: ",  UserVar3, CR
+      PAUSE 1000
   NEXT
-  GOSUB Event1_PICTURE 'take photo immediately
+  tempReg0 = 4
+  RUN 0
+
+Event4_MEASURE10: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 10 seconds", CR      ' Event 4 (measure 10 seconds)
+  I2COUT InternI2c, PCF8574Address, [%11111111] ' remove oscillator and electrodes
+    
+  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
+  I2COUT 8, $40, $05, [$FF] ' set calibration registure
+
+  FOR UserVar2 = 1 TO 10:
+      DEBUG "Loop", CR
+      I2CIN 8, $40, $04, [UserVar3] 
+      DEBUG "Current measurement: ",  UserVar3, CR
+      PAUSE 1000
+  NEXT
   tempReg0 = 4
   RUN 0
 
 
-Event4_MEASURE10: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 4 (measure 10 seconds)
-  I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
-  FOR UserVar3 = 1 TO 10:
-    I2CIN 0, $40, [UserVar0]             ' pin = 0 id = %100 ?
-    'DATA UserVar0
-    DEBUG UserVar0
-    PAUSE 1000
+Event5_MEASURE20: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 20 seconds", CR      ' Event 5 (measure 20 seconds)
+  I2COUT InternI2c, PCF8574Address, [%11111111] ' remove oscillator and electrodes
+    
+  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
+  I2COUT 8, $40, $05, [$FF] ' set calibration registure
+
+  FOR UserVar2 = 1 TO 20:
+      DEBUG "Loop", CR
+      I2CIN 8, $40, $04, [UserVar3] 
+      DEBUG "Current measurement: ",  UserVar3, CR
+      PAUSE 1000
   NEXT
-  GOSUB Event1_PICTURE 'take photo immediately
   tempReg0 = 4
   RUN 0
 
 
-Event5_MEASURE20: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 5 (measure 20 seconds)
-  I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
-  FOR UserVar3 = 1 TO 20:
-    I2CIN 0, $40, [UserVar0]             ' pin = 0 id = %100 ?
-    'DATA UserVar0
-    DEBUG UserVar0
-    PAUSE 1000
-  NEXT
-  GOSUB Event1_PICTURE 'take photo immediately
-  tempReg0 = 4
-  RUN 0
+Event6_MEASURE30: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 30 seconds", CR      ' Event 6 (measure 30 seconds)
+  I2COUT InternI2c, PCF8574Address, [%11111111] ' remove oscillator and electrodes
+    
+  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
+  I2COUT 8, $40, $05, [$FF] ' set calibration registure
 
-
-Event6_MEASURE30: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring", CR      ' Event 6 (measure 30 seconds)
-  I2COUT InternI2c, PCF8574Address, [%11111110]   'talk to Jamin
-  FOR UserVar3 = 1 TO 30:
-    I2CIN 0, $40, [UserVar0]             ' pin = 0 id = %100 ?
-    'DATA UserVar0
-    DEBUG UserVar0
-    PAUSE 1000
+  FOR UserVar2 = 1 TO 30:
+      DEBUG "Loop", CR
+      I2CIN 8, $40, $04, [UserVar3] 
+      DEBUG "Current measurement: ",  UserVar3, CR
+      PAUSE 1000
   NEXT
-  GOSUB Event1_PICTURE 'take photo immediately
   tempReg0 = 4
   RUN 0
 
@@ -551,13 +566,26 @@ Event7_OSCILLATOR: DEBUG CR, "Turn on Oscillator", CR
   tempReg0 = 4
   RUN 0
 
-Event8_RESET_TIME: DEBUG CR, "Repeat", CR                                                                             ' Event 8 (reset time)
+Event8_RESET_TIME: DEBUG CR, "Resetting time", CR                                                                             ' Event 8 (reset time)
   STORE 0
   WRITE DurDay, 00   ' change later on 10/12 after firuging out event table
   WRITE DurHour,23
   WRITE DurMin, 59
 
-Event9_TEST_DO: DEBUG CR, "TESTING DOO DOO DOOO DOOO DOOOD ODODOO", CR
+Event9_SET_CONFIG: DEBUG CR, "Setting sensor config", CR
+  I2COUT 8, $80, $00, [%00100111, %11111111] 'set configuration register
+  PAUSE 1000
+  I2CIN 8, $80, $00, [UserVar2, UserVar4]
+  DEBUG "Configuration register: ", BIN UserVar2, BIN UserVar4, CR
+  I2COUT 8, $80, $05, [$FF, $FF]
+  I2CIN 8, $80, $05, [UserVar2, UserVar4]
+  DEBUG "Calibration register: ", BIN UserVar2, BIN UserVar4, CR
+
+  DEBUG CR, "Registers set", CR	
+  tempReg0 = 4
+  RUN 0
+
+Event10_TEST_DO: DEBUG CR, "TESTING DOO DOO DOOO DOOO DOOOD ODODOO", CR
   I2COUT InternI2c, PCF8574Address, [%0001000]        ' everything off
   PAUSE 10000
    I2COUT InternI2c, PCF8574Address, [%0000000]        ' everything on
@@ -587,9 +615,10 @@ P3vector:  GOTO ReturnBack      'back to calling routine
 
          '    Day  Hour  Min   Tag  EventByte
  ETable DATA  00,  00,   00,   $FF,    00  'Row 0  Do Nothing
-        DATA  00,  00,   02,   $FF,    09  'Row 1  Take photo
+	DATA  00,  01,   00,   $FF,    10  'Row 1  Set config for sensor
+        DATA  00,  01,   02,   $FF,    01  'Row 1  Take photo
         DATA  01,  00,   10,   $FF,    02  'Row 2  Turn on and Measure current for 2 seconds
-       ' DATA  01,  00,   10,   $FF,    01  'Row 4  Take photo (turn on LED and off current)
+       ' DATA  01,  00,   10,   $FF,   01  'Row 4  Take photo (turn on LED and off current)
         DATA  01,  00,   20,   $FF,    98  'Row 5  Turn on oscillator
 
         DATA  02,  00,   00,   $FF,    01  'Row 6  Take a photo (turn off oscillator)
