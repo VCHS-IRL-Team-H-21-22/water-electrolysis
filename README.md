@@ -4,8 +4,8 @@ todo:
 
 calibrate sensor
 
-fix payload tests
+~~fix payload tests~~
 
-organize event table
+~~organize event table~~
 
 implement camera file
