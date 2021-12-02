@@ -387,15 +387,13 @@ PayloadOptions:
 HeartBeatReturn:
     DEBUG CR, "HeatBeat Done. Payload test number? > ",CR
     IF UserVar0 = "8" THEN PayloadTestP8              'Payload Board Circuit test 1
-    IF UserVar0 = "6" THEN PayloadTestP11
-    IF UserVar0 = "5" THEN PayloadTestP12
     IF UserVar0 = "1" THEN PayloadTestP1
     IF UserVar0 = "2" THEN PayloadTestP2
     IF UserVar0 = "3" THEN PayloadTestP3
     IF UserVar0 = "4" THEN PayloadTestP4
     IF UserVar0 = "5" THEN PayloadTestP5
+    IF UserVar0 = "6" THEN PayloadTestP6
     IF UserVar0 = "7" THEN PayloadTestP7
-    IF UserVar0 = "9" THEN PayloadTestP9
     IF UserVar0 = "0" THEN PayloadTestoff          'Payload Board Circuit test 2
     IF UserVar0 =$20 THEN PayloadOptionsText
     IF UserVar0 =CR THEN PayloadOptionsText
@@ -414,14 +412,9 @@ inputtimeout:
     TempReg3 = 6                   'Set to goto Slot 6
     GOTO GotoSlot                  'go to McMek command interpreter ----
 
-PayloadTestP8:
-     DEBUG CR,"Test Pump",CR
-     I2COUT InternI2c, PCF8574Address, [%00111000]           '
-     GOTO PayloadOptionsText
-
 PayloadTestP11:
      DEBUG CR, "Take Picture", CR
-     I2COUT InternI2c, PCF8574Address, [%11111111]           '
+     I2COUT InternI2c, PCF8574Address, [%00110000]           ' put pin # of LED
          '   Take a High Resolution Photo of the Chamber
          PUT    CameraRes,Camera640       'Template default
          PUT    CameraQua,CameraNormal     'set to Normal
@@ -433,22 +426,8 @@ PayloadTestP11:
      GOTO PayloadOptionsText
 PayloadTestP12:
      DEBUG CR,"All Current Source On",CR
-     I2COUT InternI2c, PCF8574Address, [%10111111]           '
+     I2COUT InternI2c, PCF8574Address, [%11111111]           '
      GOTO PayloadOptionsText
-
-PayloadTestP1:
-    DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 2 seconds", CR
-    ' I2COUT InternI2c, PCF8574Address, [%11111110] we're not using DO for payload tests
-    'I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
-    'I2COUT 8, $40, $05, [$FF] ' set calibration registure
-    FOR UserVar3 = 1 TO 2:
-      I2CIN 8, $40, [DEC UserVar4]
-      DEBUG "Current measurement: ", UserVar4, CR
-      PAUSE 1000
-    NEXT
-    tempReg0 = 4
-    RUN 0
-    GOTO PayloadOptionsText
 
 '===========================================================================================================================================================================================
 PayloadTestP9: '12/1/2021
@@ -477,31 +456,84 @@ PayloadTestP9: '12/1/2021
   GOTO PayloadOptionsText
 
 PayloadTestP2:
-    DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 5 seconds", CR
-    ' I2COUT InternI2c, PCF8574Address, [%11111110] we're not using DO for payload tests
-    I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
-    I2CIN 8, $40, $00, [UserVar2]
-    DEBUG "Configuration register: ", DEC3 UserVar2, CR
-    I2COUT 8, $40, $05, [$FF] ' set calibration registure
-    I2CIN 8, $40, $05, [UserVar2]
-    DEBUG "Calibration register: ", DEC3 UserVar2, CR
+  DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 2 seconds", CR
+    
+  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
+  I2COUT 8, $40, $05, [$FF] ' set calibration registure
 
-
-    DEBUG CR, "Registers set", CR
-    FOR UserVar2 = 1 TO 5:
+  FOR UserVar2 = 1 TO 2:
       DEBUG "Loop", CR
-      I2CIN 8, $40, $04, [UserVar3] ' try with and without DEC you know what i'm saying
-      DEBUG "Current measurement: ",  UserVar3, CR   ' current is the reading * 409.6
+      I2CIN 8, $40, $04, [UserVar3] 
+      DEBUG "Current measurement: ",  UserVar3, CR
       PAUSE 1000
-    NEXT
-    tempReg0 = 4
-    RUN 0
-    GOTO PayloadOptionsText
+  NEXT
+  tempReg0 = 4
+  RUN 0
+  GOTO PayloadOptionsText
 
-'===========================================================================================================================================================================================
 PayloadTestP3:
+  DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 5 seconds", CR
+    
+  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
+  I2COUT 8, $40, $05, [$FF] ' set calibration registure
+
+  FOR UserVar2 = 1 TO 5:
+      DEBUG "Loop", CR
+      I2CIN 8, $40, $04, [UserVar3] 
+      DEBUG "Current measurement: ",  UserVar3, CR
+      PAUSE 1000
+  NEXT
+  tempReg0 = 4
+  RUN 0
+  GOTO PayloadOptionsText
+
 PayloadTestP4:
+  DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 10 seconds", CR
+    
+  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
+  I2COUT 8, $40, $05, [$FF] ' set calibration registure
+
+  FOR UserVar2 = 1 TO 10:
+      DEBUG "Loop", CR
+      I2CIN 8, $40, $04, [UserVar3] 
+      DEBUG "Current measurement: ",  UserVar3, CR
+      PAUSE 1000
+  NEXT
+  tempReg0 = 4
+  RUN 0
+  GOTO PayloadOptionsText
+
 PayloadTestP5:
+  DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 20 seconds", CR
+    
+  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
+  I2COUT 8, $40, $05, [$FF] ' set calibration registure
+
+  FOR UserVar2 = 1 TO 20:
+      DEBUG "Loop", CR
+      I2CIN 8, $40, $04, [UserVar3] 
+      DEBUG "Current measurement: ",  UserVar3, CR
+      PAUSE 1000
+  NEXT
+  tempReg0 = 4
+  RUN 0
+  GOTO PayloadOptionsText
+
+PayloadTestP6:
+  DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 30 seconds", CR
+    
+  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
+  I2COUT 8, $40, $05, [$FF] ' set calibration registure
+
+  FOR UserVar2 = 1 TO 30:
+      DEBUG "Loop", CR
+      I2CIN 8, $40, $04, [UserVar3] 
+      DEBUG "Current measurement: ",  UserVar3, CR
+      PAUSE 1000
+  NEXT
+  tempReg0 = 4
+  RUN 0
+  GOTO PayloadOptionsText
 
 PayloadTestP7:
     DEBUG CR, "Turn on Oscillator", CR
@@ -512,10 +544,8 @@ PayloadTestP7:
 
 PayloadTestOff:
     DEBUG CR,"Pins 8 and 9 High",CR
-    I2COUT InternI2c, PCF8574Address, [%10111000]
+    'I2COUT InternI2c, PCF8574Address, [%10111000]
     tempReg0 = 4
-
-
 
     RUN 0
     GOTO PayloadOptionsText
