@@ -386,14 +386,15 @@ PayloadOptions:
       GOTO GotoSlot
 HeartBeatReturn:
     DEBUG CR, "HeatBeat Done. Payload test number? > ",CR
-    IF UserVar0 = "8" THEN PayloadTestP8              'Payload Board Circuit test 1
-    IF UserVar0 = "1" THEN PayloadTestP1
+    IF UserVar0 = "9" THEN PayloadTestP9              'Payload Board Circuit test 1
+    'IF UserVar0 = "1" THEN PayloadTestP1
     IF UserVar0 = "2" THEN PayloadTestP2
     IF UserVar0 = "3" THEN PayloadTestP3
-    IF UserVar0 = "4" THEN PayloadTestP4
-    IF UserVar0 = "5" THEN PayloadTestP5
-    IF UserVar0 = "6" THEN PayloadTestP6
-    IF UserVar0 = "7" THEN PayloadTestP7
+    'IF UserVar0 = "4" THEN PayloadTestP4
+    'IF UserVar0 = "5" THEN PayloadTestP5
+    'IF UserVar0 = "6" THEN PayloadTestP6
+    'IF UserVar0 = "7" THEN PayloadTestP7
+
     IF UserVar0 = "0" THEN PayloadTestoff          'Payload Board Circuit test 2
     IF UserVar0 =$20 THEN PayloadOptionsText
     IF UserVar0 =CR THEN PayloadOptionsText
@@ -430,9 +431,9 @@ PayloadTestP12:
      GOTO PayloadOptionsText
 
 '===========================================================================================================================================================================================
-PayloadTestP9: '12/1/2021
+PayloadTestP9: '12/1/2021  ' depracated
   DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring 5 seconds", CR
-  'I2COUT InternI2c, PCF8574Address, [%11111110] we're not using DO for payload tests
+  I2COUT InternI2c, PCF8574Address, [%11101011]
   I2COUT 8, $80, $00, [%00100111, %11111111] 'set configuration register
   PAUSE 1000
   I2CIN 8, $80, $00, [UserVar2, UserVar4]
@@ -444,96 +445,47 @@ PayloadTestP9: '12/1/2021
 
   DEBUG CR, "Registers set", CR
   FOR UserVar2 = 1 TO 5:
-    I2CIN 8, $80, $04, [UserVar3, UserVar4] ' try with and without DEC you know what i'm saying
+    I2CIN 8, $80, $04, [UserVar3, UserVar4]
     TempWord = UserVar3 * 256 + UserVar4
     DEBUG "Current measurement: ",  BIN UserVar3, " ", BIN UserVar4, " = ", DEC TempWord, CR   ' current is the reading / 80000
     PAUSE 1000
-  Next
-
-  DEBUG CR, "END of pP9, CR
-  tempReg0 = 4
-  RUN 0
-  GOTO PayloadOptionsText
-
-PayloadTestP2:
-  DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 2 seconds", CR
-    
-  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
-  I2COUT 8, $40, $05, [$FF] ' set calibration registure
-
-  FOR UserVar2 = 1 TO 2:
-      DEBUG "Loop", CR
-      I2CIN 8, $40, $04, [UserVar3] 
-      DEBUG "Current measurement: ",  UserVar3, CR
-      PAUSE 1000
   NEXT
+
+  DEBUG CR, "END of P9", CR
   tempReg0 = 4
-  RUN 0
   GOTO PayloadOptionsText
 
 PayloadTestP3:
-  DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 5 seconds", CR
-    
-  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
-  I2COUT 8, $40, $05, [$FF] ' set calibration registure
+  I2COUT InternI2c, PCF8574Address, [%11101011]
+  FOR UserVar2 = 1 TO 100:
+    GOSUB INA219_test
+    PAUSE 1000
+  NEXT
+  GOTO PayloadOptionsText
+
+PayloadTestP2:
+  DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 100 seconds", CR
+  I2COUT InternI2c, PCF8574Address, [%11101011]
+  I2COUT 8, $80, $00, [%00100111, %11111111] 'set configuration register
+  I2CIN 8, $80, $00, [UserVar2, UserVar3]
+  DEBUG "Configuration register: ", BIN UserVar2, BIN UserVar3, CR
+  I2COUT 8, $80, $05, [$FF, $FF] ' set calibration registure
+
+  PAUSE 1000
 
   FOR UserVar2 = 1 TO 5:
-      DEBUG "Loop", CR
-      I2CIN 8, $40, $04, [UserVar3] 
-      DEBUG "Current measurement: ",  UserVar3, CR
+      I2CIN 8, $80, $04, [TempWord.HIGHBYTE, TempWord.LOWBYTE]
+      DEBUG "Current measurement: ",  BIN TempWord, " = ", DEC TempWord, CR
       PAUSE 1000
   NEXT
+  I2COUT InternI2c, PCF8574Address, [%11111111]
   tempReg0 = 4
-  RUN 0
   GOTO PayloadOptionsText
+
 
 PayloadTestP4:
-  DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 10 seconds", CR
-    
-  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
-  I2COUT 8, $40, $05, [$FF] ' set calibration registure
-
-  FOR UserVar2 = 1 TO 10:
-      DEBUG "Loop", CR
-      I2CIN 8, $40, $04, [UserVar3] 
-      DEBUG "Current measurement: ",  UserVar3, CR
-      PAUSE 1000
-  NEXT
-  tempReg0 = 4
-  RUN 0
-  GOTO PayloadOptionsText
-
 PayloadTestP5:
-  DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 20 seconds", CR
-    
-  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
-  I2COUT 8, $40, $05, [$FF] ' set calibration registure
-
-  FOR UserVar2 = 1 TO 20:
-      DEBUG "Loop", CR
-      I2CIN 8, $40, $04, [UserVar3] 
-      DEBUG "Current measurement: ",  UserVar3, CR
-      PAUSE 1000
-  NEXT
-  tempReg0 = 4
-  RUN 0
-  GOTO PayloadOptionsText
-
 PayloadTestP6:
-  DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 30 seconds", CR
-    
-  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
-  I2COUT 8, $40, $05, [$FF] ' set calibration registure
-
-  FOR UserVar2 = 1 TO 30:
-      DEBUG "Loop", CR
-      I2CIN 8, $40, $04, [UserVar3] 
-      DEBUG "Current measurement: ",  UserVar3, CR
-      PAUSE 1000
-  NEXT
-  tempReg0 = 4
-  RUN 0
-  GOTO PayloadOptionsText
 
 PayloadTestP7:
     DEBUG CR, "Turn on Oscillator", CR
@@ -557,7 +509,69 @@ PayloadExit:
     TempReg3=0 'Call Slot: Main
     GOTO GotoSlot
 
+INA219_test:
+'note PLi2c = 8
+                  'ina 912 is typo
+ DEBUG CR,"--- INA219 ---",CR       'skip 2 lines between test
 
+  INA912           CON $80                     'slave address of INA912
+  INA912_config    CON $00
+  INA912_shunt     CON $01
+  INA912_bus       CON $02
+  INA912_power     CON $03
+  INA912_current   CON $04
+  INA912_cal       CON $05
+
+
+  I2COUT PLi2c, INA912,[INA912_config]                        'get config register
+  I2CIN  Pli2c, INA912, INA912_config, [TempWord.HIGHBYTE,TempWord.LOWBYTE]
+  DEBUG  "config =  ",HEX TempWord,"  ",DEC TempWord,CR
+
+  I2COUT PLi2c, INA912, INA912_cal, [$FF,$FF]
+  I2CIN  Pli2c, INA912, INA912_cal, [TempWord.HIGHBYTE,TempWord.LOWBYTE]
+  DEBUG  "cal =     ",HEX TempWord,"  ",DEC TempWord,CR
+
+  I2COUT PLi2c, INA912,[INA912_shunt]                         'get shunt voltage
+  I2CIN  Pli2c, INA912,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
+  IF TempWord > 65000 THEN TempWord =0
+  DEBUG  "shunt =   ",HEX TempWord,"  ",DEC TempWord,CR
+
+
+
+  I2COUT PLi2c, INA912,[INA912_bus]                            'get input buss voltage
+  I2CIN  Pli2c, INA912,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
+   IF TempWord > 65000 THEN TempWord =0
+  DEBUG  "bus =     ",HEX TempWord,"  ",DEC TempWord,"  "
+  TempWord1 = TempWord/2000
+  DEBUG DEC TempWord1                  'for unit digit
+  DEBUG "."
+  TempWord =(TempWord - (TempWord1*2000))
+  TempWord1 = TempWord/200                   'for 1/10 digit
+  DEBUG DEC TempWord1
+  TempWord =(TempWord - (TempWord1*200))
+  TempWord1 = TempWord/20                     'for 1/100
+  DEBUG DEC TempWord1
+  TempWord =(TempWord - (TempWord1*20))
+  TempWord1 = TempWord/2                      'for 1/1000
+  DEBUG DEC TempWord1," Volts",CR
+
+  I2COUT PLi2c, INA912,[INA912_power]
+  I2CIN  Pli2c, INA912,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
+  DEBUG  "power =   ",HEX TempWord,"  ",DEC TempWord,CR
+
+  I2COUT PLi2c, INA912,[INA912_current]
+  I2CIN  Pli2c, INA912,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
+  IF TempWord > 65000 THEN TempWord =0
+  DEBUG  "current = ",HEX TempWord,"  ",DEC TempWord,"   "
+  TempReg0 = TempWord/10                       'for unit ma digits
+  DEBUG DEC TempReg0
+  TempReg0 = TempWord//10                      'for 1/10 ma digit
+  DEBUG ".",DEC TempReg0," ma",CR
+
+
+
+  DEBUG CR
+  RETURN
 
   '
   '======================================================================
