@@ -363,7 +363,7 @@ ReturnBack:
 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 '
 
-UserVar5 = 0
+UserVar5 = 2
 
     '======================================================================
  EventTable:
@@ -488,45 +488,25 @@ Event2_MEASURE: DEBUG CR, "Turn on current across electrodes and Turn off Oscill
   I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
   I2COUT 8, $40, $05, [$FF] ' set calibration registure
 
-  if UserVar5 = 0 THEN
-    FOR UserVar2 = 1 TO 2:
-        DEBUG "Loop", CR
-        I2CIN 8, $40, $04, [UserVar3] 
-        DEBUG "Current measurement: ",  UserVar3, CR
-        PAUSE 1000
-    NEXT
-  elseif UserVar5 = 1 THEN
-    FOR UserVar2 = 1 TO 5:
-        DEBUG "Loop", CR
-        I2CIN 8, $40, $04, [UserVar3] 
-        DEBUG "Current measurement: ",  UserVar3, CR
-        PAUSE 1000
-    NEXT
-  elseif UserVar5 = 2 THEN
-    FOR UserVar2 = 1 TO 10:
-        DEBUG "Loop", CR
-        I2CIN 8, $40, $04, [UserVar3] 
-        DEBUG "Current measurement: ",  UserVar3, CR
-        PAUSE 1000
-    NEXT
-  elseif UserVar5 = 3 THEN
-    FOR UserVar2 = 1 TO 20:
-        DEBUG "Loop", CR
-        I2CIN 8, $40, $04, [UserVar3] 
-        DEBUG "Current measurement: ",  UserVar3, CR
-        PAUSE 1000
-    NEXT
-  elseif UserVar5 = 4 THEN
-    FOR UserVar2 = 1 TO 30:
-        DEBUG "Loop", CR
-        I2CIN 8, $40, $04, [UserVar3] 
-        DEBUG "Current measurement: ",  UserVar3, CR
-        PAUSE 1000
-    NEXT
-    UserVar5 = 0
-  endif
+  FOR UserVar2 = 1 TO UserVar5:
+      DEBUG "Loop", CR
+      I2CIN 8, $40, $04, [UserVar3] 
+      DEBUG "Current measurement: ",  UserVar3, CR
+      PAUSE 1000
+  NEXT
 
-  UserVar5 = UserVar5 + 1
+  IF UserVar5 = 20 THEN
+    UserVar5 = 30
+  ELSEIF UserVar5 = 10 THEN
+    UserVar5 = 20
+  ELSEIF UserVar5 = 5 THEN
+    UserVar5 = 10
+  ELSEIF UserVar5 = 2 THEN
+    UserVar5 = 5
+  ELSEIF UserVar5 = 30 THEN
+    UserVar5 = 2
+  ENDIF
+  
   tempReg0 = 4
   RUN 0
 
