@@ -363,12 +363,7 @@ ReturnBack:
 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 '
 
-UserVar5(0) = 2
-UserVar5(1) = 5
-UserVar5(2) = 10
-UserVar5(3) = 20
-UserVar5(4) = 30
-UserVar1 = 0
+UserVar5 = 0
 
     '======================================================================
  EventTable:
@@ -487,20 +482,51 @@ TakePhotoReturn:
 
 
 
-
 Event2_MEASURE: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for j seconds", CR      ' Event 2 (measure j seconds)
   I2COUT InternI2c, PCF8574Address, [%11111111] ' remove oscillator and electrodes
     
   I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
   I2COUT 8, $40, $05, [$FF] ' set calibration registure
 
-  FOR UserVar2 = 1 TO UserVar5(UserVar1):
-      DEBUG "Loop", CR
-      I2CIN 8, $40, $04, [UserVar3] 
-      DEBUG "Current measurement: ",  UserVar3, CR
-      PAUSE 1000
-  NEXT
-  UserVar1 = UserVar1 + 1
+  if UserVar5 = 0 THEN
+    FOR UserVar2 = 1 TO 2:
+        DEBUG "Loop", CR
+        I2CIN 8, $40, $04, [UserVar3] 
+        DEBUG "Current measurement: ",  UserVar3, CR
+        PAUSE 1000
+    NEXT
+  elseif UserVar5 = 1 THEN
+    FOR UserVar2 = 1 TO 5:
+        DEBUG "Loop", CR
+        I2CIN 8, $40, $04, [UserVar3] 
+        DEBUG "Current measurement: ",  UserVar3, CR
+        PAUSE 1000
+    NEXT
+  elseif UserVar5 = 2 THEN
+    FOR UserVar2 = 1 TO 10:
+        DEBUG "Loop", CR
+        I2CIN 8, $40, $04, [UserVar3] 
+        DEBUG "Current measurement: ",  UserVar3, CR
+        PAUSE 1000
+    NEXT
+  elseif UserVar5 = 3 THEN
+    FOR UserVar2 = 1 TO 20:
+        DEBUG "Loop", CR
+        I2CIN 8, $40, $04, [UserVar3] 
+        DEBUG "Current measurement: ",  UserVar3, CR
+        PAUSE 1000
+    NEXT
+  elseif UserVar5 = 4 THEN
+    FOR UserVar2 = 1 TO 30:
+        DEBUG "Loop", CR
+        I2CIN 8, $40, $04, [UserVar3] 
+        DEBUG "Current measurement: ",  UserVar3, CR
+        PAUSE 1000
+    NEXT
+    UserVar5 = 0
+  endif
+
+  UserVar5 = UserVar5 + 1
   tempReg0 = 4
   RUN 0
 
