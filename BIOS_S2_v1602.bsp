@@ -483,17 +483,9 @@ TakePhotoReturn:
 
 
 Event2_MEASURE: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for j seconds", CR      ' Event 2 (measure j seconds)
-  I2COUT InternI2c, PCF8574Address, [%11111111] ' remove oscillator and electrodes
-    
-  I2COUT 8, $40, $00, [%0010011111111111] 'set configuration register
-  I2COUT 8, $40, $05, [$FF] ' set calibration registure
-
-  FOR UserVar2 = 1 TO UserVar5:
-      DEBUG "Loop", CR
-      I2CIN 8, $40, $04, [UserVar3] 
-      DEBUG "Current measurement: ",  UserVar3, CR
-      PAUSE 1000
-  NEXT
+  I2COUT InternI2c, PCF8574Address, [%11010000] ' turn on everything but oscillator and LED
+  
+  INA219_test
 
   IF UserVar5 = 20 THEN
     UserVar5 = 30
@@ -506,7 +498,6 @@ Event2_MEASURE: DEBUG CR, "Turn on current across electrodes and Turn off Oscill
   ELSEIF UserVar5 = 30 THEN
     UserVar5 = 2
   ENDIF
-  
   tempReg0 = 4
   RUN 0
 
@@ -593,3 +584,68 @@ P3vector:  GOTO ReturnBack      'back to calling routine
         DATA  05,  23,   59,   $FF,    99  'Row 26 Loop back to day 1
 
 ' figure out data storage
+
+INA219_test:
+'note PLi2c = 8
+
+ DEBUG CR,"--- INA219 ---",CR       'skip 2 lines between test
+
+  INA219           CON $80                     'slave address of INA219
+  INA219_config    CON $00
+  INA219_shunt     CON $01
+  INA219_bus       CON $02
+  INA219_power     CON $03
+  INA219_current   CON $04
+  INA219_cal       CON $05
+
+
+ ' I2COUT PLi2c, INA219,[INA219_config]
+
+' I2COUT PLi2c, INA219,[INA219_config, %00111111, %11011111]                        'get config register
+  I2COUT PLi2c, INA219,[INA219_config,$39,$FF]
+  I2CIN  Pli2c, INA219,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
+  DEBUG  "config =  ",BIN TempWord,"  ",DEC TempWord,CR
+
+  I2COUT PLi2c, INA219,[INA219_cal,$10,$00]
+  I2CIN  Pli2c, INA219,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
+  DEBUG  "cal =     ",HEX TempWord,"  ",DEC TempWord,CR
+
+  I2COUT PLi2c, INA219,[INA219_shunt]                         'get shunt voltage
+  I2CIN  Pli2c, INA219,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
+  IF TempWord > 65000 THEN TempWord =0
+  DEBUG  "shunt =   ",HEX TempWord,"  ",DEC TempWord,CR
+
+
+
+  I2COUT PLi2c, INA219,[INA219_bus]                            'get input buss voltage
+  I2CIN  Pli2c, INA219,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
+   IF TempWord > 65000 THEN TempWord =0
+  DEBUG  "bus =     ",HEX TempWord,"  ",DEC TempWord,"  "
+   TempWord1 = TempWord/2000                        ' print voltage dec
+  DEBUG DEC TempWord1                  'for unit digit
+  DEBUG "."
+  TempWord =(TempWord - (TempWord1*2000))
+  TempWord1 = TempWord/200                   'for 1/10 digit
+  DEBUG DEC TempWord1
+  TempWord =(TempWord - (TempWord1*200))
+  TempWord1 = TempWord/20                     'for 1/100
+  DEBUG DEC TempWord1
+  TempWord =(TempWord - (TempWord1*20))
+  TempWord1 = TempWord/2                      'for 1/1000
+  DEBUG DEC TempWord1," Volts",CR
+
+
+  I2COUT PLi2c, INA219,[INA219_power]
+  I2CIN  Pli2c, INA219,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
+  DEBUG  "power =   ",HEX TempWord,"  ",DEC TempWord,CR
+
+  I2COUT PLi2c, INA219,[INA219_current]
+  I2CIN  Pli2c, INA219,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
+  IF TempWord > 65000 THEN TempWord =0
+  DEBUG  "current = ",HEX TempWord,"  ",DEC TempWord,"   "
+  TempReg0 = TempWord/10                       'for unit ma digits
+  DEBUG DEC TempReg0
+  TempReg0 = TempWord//10                      'for 1/10 ma digit
+  DEBUG ".",DEC TempReg0," ma",CR
+  DEBUG CR
+  RETURN
