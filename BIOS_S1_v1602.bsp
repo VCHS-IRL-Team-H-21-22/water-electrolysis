@@ -388,7 +388,7 @@ HeartBeatReturn:
     DEBUG CR, "HeatBeat Done. Payload test number? > ",CR
     IF UserVar0 = "9" THEN PayloadTestP9              'Payload Board Circuit test 1
     'IF UserVar0 = "1" THEN PayloadTestP1
-    IF UserVar0 = "2" THEN PayloadTestP2
+    'IF UserVar0 = "2" THEN PayloadTestP2
     IF UserVar0 = "3" THEN PayloadTestP3
     'IF UserVar0 = "4" THEN PayloadTestP4
     'IF UserVar0 = "5" THEN PayloadTestP5
@@ -456,43 +456,14 @@ PayloadTestP9: '12/1/2021  ' depracated
   GOTO PayloadOptionsText
 
 PayloadTestP3:
+  DEBUG CR, "Measure Current indefinitely", CR
   I2COUT InternI2c, PCF8574Address, [%00000000]
-  FOR UserVar2 = 1 TO 10:
+  DO:
     GOSUB INA219_test
-    PAUSE 1000
-  NEXT
+    PAUSE 500
+  LOOP
   GOTO PayloadOptionsText
 
-PayloadTestP2:
-  DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for 100 seconds", CR
-  I2COUT InternI2c, PCF8574Address, [%11101011]
-  INA219           CON $80                     'slave address of INA219
-  INA219_config    CON $00
-  INA219_shunt     CON $01
-  INA219_bus       CON $02
-  INA219_power     CON $03
-  INA219_current   CON $04
-  INA219_cal       CON $05
-  'PLi2c is 8
-  I2COUT PLi2c, INA219,INA219_config, [%00100111, %11111111]                        'get config register
-  I2CIN  Pli2c, INA219, INA219_config, [TempWord.HIGHBYTE,TempWord.LOWBYTE]
-  DEBUG  "config =  ",HEX TempWord,"  ",BIN TempWord,CR
-
-  I2COUT PLi2c, INA219, INA219_cal, [$80,$00]
-  I2CIN  Pli2c, INA219, INA219_cal, [TempWord.HIGHBYTE,TempWord.LOWBYTE]
-  DEBUG  "cal =     ",HEX TempWord,"  ",BIN TempWord,CR
-
-
-  PAUSE 1000
-
-  FOR UserVar2 = 1 TO 5:
-      I2CIN 8, $80, $04, [TempWord.HIGHBYTE, TempWord.LOWBYTE]
-      DEBUG "Current measurement: ",  BIN TempWord, " = ", DEC TempWord, CR
-      PAUSE 1000
-  NEXT
-  I2COUT InternI2c, PCF8574Address, [%11111111]
-  tempReg0 = 4
-  GOTO PayloadOptionsText
 
 PayloadTestP7:
     DEBUG CR, "Turn on Oscillator", CR
@@ -525,15 +496,26 @@ INA219_test:
 
  ' I2COUT PLi2c, INA912,[INA912_config]
 
- I2COUT PLi2c, INA912,[INA912_config, %00000111, %11011111]                        'get config register
-'  I2COUT PLi2c, INA912,[INA912_config]
+' I2COUT PLi2c, INA912,[INA912_config, %00111111, %11011111]                        'get config register
+  I2COUT PLi2c, INA912,[INA912_config,$39,$FF]
   I2CIN  Pli2c, INA912,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
   DEBUG  "config =  ",BIN TempWord,"  ",DEC TempWord,CR
+
+  I2COUT PLi2c, INA912,[INA912_cal,$10,$00]
+  I2CIN  Pli2c, INA912,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
+  DEBUG  "cal =     ",HEX TempWord,"  ",DEC TempWord,CR
 
   I2COUT PLi2c, INA912,[INA912_shunt]                         'get shunt voltage
   I2CIN  Pli2c, INA912,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
   IF TempWord > 65000 THEN TempWord =0
   DEBUG  "shunt =   ",HEX TempWord,"  ",DEC TempWord,CR
+
+
+
+  I2COUT PLi2c, INA912,[INA912_bus]                            'get input buss voltage
+  I2CIN  Pli2c, INA912,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
+   IF TempWord > 65000 THEN TempWord =0
+  DEBUG  "bus =     ",HEX TempWord,"  ",DEC TempWord,"  "
    TempWord1 = TempWord/2000                        ' print voltage dec
   DEBUG DEC TempWord1                  'for unit digit
   DEBUG "."
@@ -548,12 +530,6 @@ INA219_test:
   DEBUG DEC TempWord1," Volts",CR
 
 
-  I2COUT PLi2c, INA912,[INA912_bus]                            'get input buss voltage
-  I2CIN  Pli2c, INA912,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
-   IF TempWord > 65000 THEN TempWord =0
-  DEBUG  "bus =     ",HEX TempWord,"  ",DEC TempWord,"  "
-
-
   I2COUT PLi2c, INA912,[INA912_power]
   I2CIN  Pli2c, INA912,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
   DEBUG  "power =   ",HEX TempWord,"  ",DEC TempWord,CR
@@ -566,11 +542,6 @@ INA219_test:
   DEBUG DEC TempReg0
   TempReg0 = TempWord//10                      'for 1/10 ma digit
   DEBUG ".",DEC TempReg0," ma",CR
-
-  I2COUT PLi2c, INA912,[INA912_cal,$80,00]
-  I2CIN  Pli2c, INA912,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
-  DEBUG  "cal =     ",HEX TempWord,"  ",DEC TempWord,CR
-
   DEBUG CR
   RETURN
 
