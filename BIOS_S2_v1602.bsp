@@ -484,7 +484,7 @@ TakePhotoReturn:
 
 Event2_MEASURE: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for j seconds", CR      ' Event 2 (measure j seconds)
   I2COUT InternI2c, PCF8574Address, [%11010000] ' turn on everything but oscillator and LED
-  
+
   INA219_test
 
   IF UserVar5 = 20 THEN
@@ -522,7 +522,7 @@ Event9_SET_CONFIG: DEBUG CR, "Setting sensor config", CR
   I2CIN 8, $80, $05, [UserVar2, UserVar4]
   DEBUG "Calibration register: ", BIN UserVar2, BIN UserVar4, CR
 
-  DEBUG CR, "Registers set", CR	
+  DEBUG CR, "Registers set", CR
   tempReg0 = 4
   RUN 0
 
@@ -556,7 +556,7 @@ P3vector:  GOTO ReturnBack      'back to calling routine
 
          '    Day  Hour  Min   Tag  EventByte
  ETable DATA  00,  00,   00,   $FF,    00  'Row 0  Do Nothing
-	      DATA  00,  01,   00,   $FF,    10  'Row 1  Set config for sensor
+        DATA  00,  01,   00,   $FF,    10  'Row 1  Set config for sensor
         DATA  00,  01,   02,   $FF,    01  'Row 1  Take photo
         DATA  01,  00,   10,   $FF,    02  'Row 2  Turn on and Measure current for 2 seconds
        ' DATA  01,  00,   10,   $FF,   01  'Row 4  Take photo (turn on LED and off current)
