@@ -485,7 +485,7 @@ TakePhotoReturn:
 Event2_MEASURE: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for j seconds", CR      ' Event 2 (measure j seconds)
   I2COUT InternI2c, PCF8574Address, [%11010000] ' turn on everything but oscillator and LED
 
-  INA219_test
+  GOSUB INA219_test
 
   IF UserVar5 = 20 THEN
     UserVar5 = 30
