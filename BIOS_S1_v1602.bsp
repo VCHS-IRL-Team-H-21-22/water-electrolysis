@@ -25,6 +25,7 @@ version  CON 1602
 '******************  Start of System Global lables *******************
 '     Conditional Assemblies
 '
+
 #DEFINE FlyConfig = 1            '1=Set to Flight Configuration, 0=Test Configuration
 #DEFINE fastclock = 0            '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
 #DEFINE testreset = 1              '1=test reset and reset count
@@ -288,11 +289,11 @@ text        VAR Byte(8)      'make array for text
 '  the value may be destroyed by a Call to the BIOS or BIOS operation
 '
 UserVar0    VAR Byte         'user Varible space - Should be same across all slots
-'UserVar1    VAR Byte         'user Varible space - Should be same across all slots
+UserVar1    VAR Byte         'user Varible space - Should be same across all slots
 UserVar2    VAR Byte         'user Varible space - Should be same across all slots
-UserVar3    VAR Word         'user Varible space - Should be same across all slots
-UserVar4    VAR Word         'user Varible space - Should be same across all slots
-'UserVar5    VAR Byte         'user Varible space - Should be same across all slots
+UserVar3    VAR Byte         'user Varible space - Should be same across all slots
+UserVar4    VAR Byte         'user Varible space - Should be same across all slots
+UserVar5    VAR Byte         'user Varible space - Should be same across all slots
 
 '
 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -388,7 +389,7 @@ HeartBeatReturn:
     DEBUG CR, "HeatBeat Done. Payload test number? > ",CR
     IF UserVar0 = "9" THEN PayloadTestP9              'Payload Board Circuit test 1
     IF UserVar0 = "1" THEN PayloadTestP1
-    'IF UserVar0 = "2" THEN PayloadTestP2
+    IF UserVar0 = "2" THEN PayloadTestP2
     IF UserVar0 = "3" THEN PayloadTestP3
     'IF UserVar0 = "4" THEN PayloadTestP4
     'IF UserVar0 = "5" THEN PayloadTestP5
@@ -422,15 +423,15 @@ PayloadTestP1:
      DEBUG CR, "Take Picture", CR
      I2COUT InternI2c, PCF8574Address, [%11101111]           ' put pin # of LED
          '   Take a High Resolution Photo of the Chamber
-     PUT    CameraRes,Camera640       'Template default
+     PUT    CameraRes,Camera320       'Template default
      PUT    CameraQua,CameraNormal     'set to Normal
      PUT VectorFromSlot,2 'Return Slot
      PUT VectorFromNum,1  'Return Index
      TempReg1 = 1    'Destination Index
      TempReg3 = 6    'Destination Slot
-         'RUN 6           'Execute a slot goto proceedure now doit
+         RUN 6           'Execute a slot goto proceedure now doit
      GOTO PayloadOptionsText
-PayloadTestP12:
+PayloadTestP2:
      DEBUG CR,"All Current Source On",CR
      I2COUT InternI2c, PCF8574Address, [%00000000]           '
      GOTO PayloadOptionsText
@@ -439,14 +440,16 @@ PayloadTestP12:
 PayloadTestP3:
   DEBUG CR, "Measure Current indefinitely", CR
   I2COUT InternI2c, PCF8574Address, [%11000000]
-  DO:
+  FOR UserVar2 = 1 TO 10:
     'SERIN con_in,con_baud,[UserVar3] 'get terminal input
     'IF UserVar3 = 8 THEN:
      ' GOTO PayloadOptionsText
     'ENDIF
     GOSUB INA219_test
     PAUSE 500
-  LOOP
+  NEXT
+  I2COUT InternI2c, PCF8574Address, [%11111111]
+  ' DO ... LOOP
   GOTO PayloadOptionsText
 
 
@@ -524,6 +527,7 @@ INA219_test:
 
   I2COUT PLi2c, INA219,[INA219_current]
   I2CIN  Pli2c, INA219,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
+  GOSUB WriteWordHex
   IF TempWord > 65000 THEN TempWord =0
   DEBUG  "current = ",HEX TempWord,"  ",DEC TempWord,"   "
   TempReg0 = TempWord/10                       'for unit ma digits
@@ -533,7 +537,101 @@ INA219_test:
   DEBUG CR
   RETURN
 
-PayloadExit:
+  '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        '
+'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+'  Routine to write a charator to be appended to the text file associated
+'   with the photo.
+'  Enter with:
+'  BiosWord3 = contains the pointer to the next location in the input file
+'  TempReg0 = with the charator to write.
+'
+WriteOneText:
+    GOSUB getpointers
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'Write to txt buf
+    GOTO storepointers
+'
+'write word in Hex with space
+'
+WriteWordHex:
+    GOSUB getpointers   '
+    TempReg0 = TempWord.HIGHBYTE             'get the high byte
+    TempReg0 = TempReg0>>4                    'place in lower nibble
+    GOSUB WriteOneHex
+    TempReg0 = TempWord.HIGHBYTE & $0F        'remove the upper nebble
+    GOSUB WriteOneHex
+    TempReg0 = TempWord.LOWBYTE             'get the high byte
+    TempReg0 = TempReg0>>4                    'place in lower nibble
+    GOSUB WriteOneHex
+    TempReg0 = TempWord.LOWBYTE & $0F        'remove the upper nebble
+    GOSUB WriteOneHex
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [$20]  'Write space to txt buf
+    GOTO Storepointers
+
+WriteOneHex:
+    TempReg0 = TempReg0 & $0F
+    IF TempReg0 > 9 THEN TempReg0 = TempReg0+7 'point to ABCDEF
+    TempReg0 = TempReg0+$30                  'make it ascii hex
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'Write to txt buf
+    PAUSE 10
+    TempWord1 = TempWord1+1         'inc to point to next
+    xcounter = xcounter+1           'point to next location
+    RETURN
+
+    '
+    'enter with TempWord with number
+    '
+WriteBase10:
+    GOSUB getpointers
+    '
+    TempReg0 = TempWord/10000                      'how many 10000
+    GOSUB Base10support
+    TempWord = TempWord - (TempReg0*10000)           'subt the number of 10000
+    TempReg0 = TempWord/1000                       'how many 10000
+    GOSUB Base10support
+    TempWord = TempWord-(TempReg0*1000)            'sub the number of 1000
+    TempReg0 = TempWord/100                        'how many 100
+    GOSUB Base10support
+    TempWord = TempWord - (TempReg0*100)           'subt number of 100
+    TempReg0 = TempWord/10                         'how many 10
+    GOSUB Base10support
+    TempWord = TempWord - (TempReg0*10)
+    TempReg0 = TempWord
+    GOSUB Base10support
+    GOTO commonreturn
+    '
+Base10support:
+    xcounter = TempWord1 + $D000
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0+$30]  'Write to txt buf
+    PAUSE 10
+    TempWord1 = TempWord1+1                        'point to next location
+    RETURN
+    '
+    ' common get pointers for routins
+    '
+getpointers:
+    GET ActiveBank,TempReg2             'Set TempReg2 to the Active Bank 0 2 4
+    GET BiosWord3,TempWord1.LOWBYTE
+    GET BiosWord3h,TempWord1.HIGHBYTE
+    xcounter = TempWord1 + $D000
+    RETURN                              '
+    '
+    ' common store/replace pointers for next time
+    '
+storepointers:
+    PAUSE 10
+    TempWord1 = TempWord1+1         'inc to point to next
+    xcounter = xcounter+1           'point to the next
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [$00]  'Write to txt buf
+    PAUSE 10
+commonreturn:
+    PUT BiosWord3,TempWord1.LOWBYTE
+    PUT BiosWord3h,TempWord1.HIGHBYTE
+    RETURN
+
+             '
+'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  PayloadExit:
     TempReg0=0 'Call Index: SystemInitReturn
     TempReg1=0 'Call Index: SystemInitReturn
     TempReg3=0 'Call Slot: Main
