@@ -1,6 +1,6 @@
 ' {$STAMP BS2P}
 ' {$PBASIC 2.5}
-' {$PORT COM6}
+' {$PORT COM4}
 
 
 version  CON 1602
@@ -580,6 +580,37 @@ SS1or0:
     '
     ' To Add additional Text To the Text output file => Add it here
     ' Be carful with pointers, and write to the
+
+
+    '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+' Move the text that was stored in $D000 to the end of the output text file.
+'  The text must be in ascii for human readable and not contain a $00 / EOF marker within the file
+'  The EOF will terminate the transfer the last charator in the file must be a EOF
+'  TempWord is used to point to the source $D000
+'  xcounter is used to point to the TextBuffer
+'  TempReg0 contains the charator read and to write
+'  TempReg2 contains the PhotoBank/Text bank of this output
+'  BiosWord3 contains the writing pointer, it must be cleared here for a clean new start
+'
+    GET ActiveBank,TempReg2             'Set TempReg2 to the Active Bank 0 2 4
+    PUT BiosWord3,$00  'clear the input pointer
+    PUT BiosWord3h,$00
+    TempWord =  $D000
+    xcounter =  TextBuffer+(Tdata-ID)     'point into the text buffer for additional text
+getnext:
+    I2CIN InternI2c, $A0 | TempReg2,TempWord.HIGHBYTE\TempWord.LOWBYTE, [TempReg0]  'the byte to move
+    PAUSE 1
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'get to low value
+    PAUSE 10
+'    DEBUG  HEX xcounter,"  ",HEX TempWord,"  ",HEX TempReg0,CR                                                                         'must wait for write
+    TempWord = TempWord+1 :xcounter = xcounter+1                                     'inc both pointers to next
+    IF TempReg0 <> $00 THEN GOTO getnext  'if not EOF, get the next charator, if is - fall through done
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [EOF]  'get to low value
+    PAUSE 10
+
+    DEBUG CR,"GOT ZERO HERE",CR
+'
+'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     '
     '***********************************************************************
     '        TEST NOT NECESSARY TO FLY
@@ -739,7 +770,7 @@ Convert2BCD2:
       DATA $00           'Cstatus          state and status of testing chamber
       DATA Word $0000    'TestNumber         location in EEROM
       DATA $00           'ResetNumber        Store number of reset sense last program load
-      DATA "ZL"          'IDcodefile         2 alpha ID of MicroLab "ML,FF,XX,??"
+      DATA "HH"          'IDcodefile         2 alpha ID of MicroLab "ML,FF,XX,??"
       DATA "00000"       'LastPhoto          MSD  $30,$30,$30,$30,$30  lsd
       DATA $00           'LastBKupload       last bank uploaded
       DATA $00           'NextBktoLoad       next bank to load
@@ -753,7 +784,7 @@ Convert2BCD2:
 ' For text
 '**************
 '
-ID       DATA "BIOS Templet Program 2013-2014 Ver 131",CR     'Name of School/Project
+ID       DATA "BIOS PhotoLoop Templet Program 2020.1",CR     'Name of School/Project
          DATA "Data Download Number "
 LastPN   DATA "ML00000",CR                         'photo file name
 ADate    DATA "00/00/00 at "                       'RTC date
@@ -782,8 +813,12 @@ AV3      DATA "0.00 Volts",CR
 VcV      DATA "0.00 Volts",CR
          DATA "System Status = "                   'status of photo buffers and download/upload
 SStat    DATA "00xxx000",CR
-         DATA "Ver 080313.00",CR
+         DATA "Ver 080313.00",CR,CR
 '         DATA EOF
+'
+'        '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Tdata    DATA "this is where additional text is located"
+'
          ' To place additional Statements in the Text file for output - the EOF
          ' byte must be removed and added at the end of the additional statements as
          ' shown below. Space is limited due to the text being in the same space as the
