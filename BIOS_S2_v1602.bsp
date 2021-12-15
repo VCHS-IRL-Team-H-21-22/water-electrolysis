@@ -25,7 +25,7 @@ version  CON 1602
 '******************  Start of System Global lables *******************
 '     Conditional Assemblies
 '
-#DEFINE FlyConfig = 0            '1=Set to Flight Configuration, 0=Test Configuration
+#DEFINE FlyConfig = 1            '1=Set to Flight Configuration, 0=Test Configuration
 #DEFINE fastclock = 0            '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
 #DEFINE testreset = 1              '1=test reset and reset count
 #DEFINE SaySlot   = 1              '1=Say Slot with vector
@@ -423,10 +423,10 @@ FoundEvent:
   [Event0_NOTHING,                     'Event 0 (do nothing)
    Event1_PICTURE,                     'Event 1 (take photo)
    Event2_MEASURE,                    'Event 2 (measure j seconds)
-   Event7_OSCILLATOR,                  'Event 7 (turn on oscillator)
-   Event8_RESET_TIME,                   ' loop back to 0
-   Event9_SET_CONFIG,                   ' set the config for the sensor
-   Event10_TEST_DO]
+   Event3_OSCILLATOR,                  'Event 7 (turn on oscillator)
+   Event4_RESET_TIME,                   ' loop back to 0
+   Event5_SET_CONFIG]                  ' set the config for the sensor
+
 
 
 ' If BRANCHing with UserVar3 isn't working, then it will fall through to this:
@@ -440,30 +440,23 @@ FoundEvent:
 '
 ' 0 = on 1 = off
 '
-' PIN DO0 = voltage regulator
-' PIN DO3 and 4 = LED
-' PIN DO6 and 7 = oscillator
-' PIN IO0 = microswitch ' shut down experiment when receive input   'IMPLEMENT LATER
-' current sensor connected to 5V GND SCL SDA  ' read data sheet
-
-
-' day 1
-' turn on current for varaible samount of sconds
-' while the current is on, measure the current and store those into ??? to be put into camera text
-' turn of current and take picture
-' turn on oscillator for the rest of the day
+' 0 and 2 = chamber
+' 4 = LED
+' 6 and 7 = oscillator
+' microswitch?
 
 ' ----------------------------------------------------------------------------------------------------
 '                                              EVENTS
 ' ----------------------------------------------------------------------------------------------------
 Event0_NOTHING: DEBUG CR, "Nothing", CR
-  I2COUT InternI2c, PCF8574Address, [%0000000] ' everything off                                                    ' Event 0 (Nothing)
+  I2COUT InternI2c, PCF8574Address, [%11111111] ' everything off
+                                                     ' Event 0 (Nothing)
   tempReg0 = 4
   RUN 0
 
 
 Event1_PICTURE: DEBUG CR,"Take Picture/LED",CR                                                                     ' Event 1 (Photo)
-  I2COUT InternI2c, PCF8574Address, [%11100111]
+  I2COUT InternI2c, PCF8574Address, [%11101111]
 '   Take a High Resolution Photo of the Chamber
   PUT    CameraRes,Camera640        'Template default
   PUT    CameraQua,CameraNormal     'set to Normal
@@ -480,59 +473,60 @@ TakePhotoReturn:
   tempReg0 = 4 'Destination Index (EventTableReturn)
   RUN 0        'Destination Slot
 
+Time1    CON     5
+Time2    CON     10
+Time3    CON     15
+Time4    CON     20
+Time5    CON     30
 
 
 Event2_MEASURE: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for j seconds", CR      ' Event 2 (measure j seconds)
   I2COUT InternI2c, PCF8574Address, [%11010000] ' turn on everything but oscillator and LED
 
-  GOSUB INA219_test
+  FOR UserVar2 = 0 TO UserVar5:
+    GOSUB INA219_test
+  NEXT
 
-  IF UserVar5 = 20 THEN
-    UserVar5 = 30
-  ELSEIF UserVar5 = 10 THEN
-    UserVar5 = 20
-  ELSEIF UserVar5 = 5 THEN
-    UserVar5 = 10
-  ELSEIF UserVar5 = 2 THEN
-    UserVar5 = 5
-  ELSEIF UserVar5 = 30 THEN
-    UserVar5 = 2
+  IF UserVar5 = Time1 THEN
+    UserVar5 = Time2
+  ELSEIF UserVar5 = Time2 THEN
+    UserVar5 = Time3
+  ELSEIF UserVar5 = Time3 THEN
+    UserVar5 = Time4
+  ELSEIF UserVar5 = Time4 THEN
+    UserVar5 = Time5
+  ELSEIF UserVar5 = Time5 THEN
+    UserVar5 = Time1
   ENDIF
+
   tempReg0 = 4
   RUN 0
 
 
-Event7_OSCILLATOR: DEBUG CR, "Turn on Oscillator", CR
-  I2COUT InternI2c, PCF8574Address, [%00111111]                                                                  ' Event 7 (oscillator)
+Event3_OSCILLATOR: DEBUG CR, "Turn on Oscillator", CR
+  I2COUT InternI2c, PCF8574Address, [%00111111]                                                                  ' Event 3 (oscillator)
   tempReg0 = 4
   RUN 0
 
-Event8_RESET_TIME: DEBUG CR, "Resetting time", CR                                                                ' Event 8 (reset time)
+Event4_RESET_TIME: DEBUG CR, "Resetting time", CR                                                                ' Event 4 (reset time)
   STORE 0
-  WRITE DurDay, 00   ' change later on 10/12 after firuging out event table
+  WRITE DurDay, 00
   WRITE DurHour,23
   WRITE DurMin, 59
 
-Event9_SET_CONFIG: DEBUG CR, "Setting sensor config", CR
+Event5_SET_CONFIG: DEBUG CR, "Setting UserVar5 to first time", CR
   ' DEPRACATED
-  I2COUT 8, $80, $00, [%00100111, %11111111] 'set configuration register
-  PAUSE 1000
-  I2CIN 8, $80, $00, [UserVar2, UserVar4]
-  DEBUG "Configuration register: ", BIN UserVar2, BIN UserVar4, CR
-  I2COUT 8, $80, $05, [$FF, $FF]
-  I2CIN 8, $80, $05, [UserVar2, UserVar4]
-  DEBUG "Calibration register: ", BIN UserVar2, BIN UserVar4, CR
-
-  DEBUG CR, "Registers set", CR
+  'I2COUT 8, $80, $00, [%00100111, %11111111] 'set configuration register
+  'PAUSE 1000
+  'I2CIN 8, $80, $00, [UserVar2, UserVar4]
+  'DEBUG "Configuration register: ", BIN UserVar2, BIN UserVar4, CR
+  'I2COUT 8, $80, $05, [$FF, $FF]
+  'I2CIN 8, $80, $05, [UserVar2, UserVar4]
+  'DEBUG "Calibration register: ", BIN UserVar2, BIN UserVar4, CR
+  UserVar5 = Time1
   tempReg0 = 4
   RUN 0
 
-Event10_TEST_DO: DEBUG CR, "TESTING DOO DOO DOOO DOOO DOOOD ODODOO", CR
-  I2COUT InternI2c, PCF8574Address, [%0001000]        ' everything off
-  PAUSE 10000
-   I2COUT InternI2c, PCF8574Address, [%0000000]        ' everything on
-   tempReg0 = 4
-   RUN 0
 ' ----------------------------------------------------------------------------------------------------
 
 
@@ -557,32 +551,13 @@ P3vector:  GOTO ReturnBack      'back to calling routine
 
          '    Day  Hour  Min   Tag  EventByte
  ETable DATA  00,  00,   00,   $FF,    00  'Row 0  Do Nothing
-        'DATA  00,  01,   00,   $FF,    10  'Row 1  Set config for sensor
-        DATA  00,  01,   02,   $FF,    01  'Row 1  Take photo
-        DATA  01,  00,   10,   $FF,    02  'Row 2  Turn on and Measure current for 2 seconds
-       ' DATA  01,  00,   10,   $FF,   01  'Row 4  Take photo (turn on LED and off current)
-        DATA  01,  00,   20,   $FF,    98  'Row 5  Turn on oscillator
+        DATA  00,  13,   00,   $FF,    05  'Row 1  Set config
+        DATA  01,  00,   00,   $FF,    01  'Row 2  Take photo
+        DATA  01,  00,   15,   $FF,    02  'Row 3  Turn on and Measure current for x seconds (take photo)
+        DATA  01,  00,   25,   $FF,    03  'Row 4  Turn on oscillator
+        DATA  01,  23,   59,   $FF,    04  'Row 5  Reset the time to 0D 23H 59M
 
-        DATA  02,  00,   00,   $FF,    01  'Row 6  Take a photo (turn off oscillator)
-        DATA  02,  00,   10,   $FF,    02  'Row 8  Turn on and Measure current for 5 seconds
-       ' DATA  02,  00,   10,   $FF,    01  'Row 9  Take photo (turn on LED and off current)
-        DATA  02,  00,   20,   $FF,    98  'Row 10 Turn on oscillator
-
-        DATA  03,  00,   00,   $FF,    01  'Row 11 Take a photo (turn off oscillator)
-        DATA  03,  00,   10,   $FF,    02  'Row 13 Turn on and Measure current for 10 seconds
-       ' DATA  03,  00,   10,   $FF,    01  'Row 14 Take photo (turn on LED and off current)
-        DATA  03,  00,   20,   $FF,    98  'Row 15 Turn on oscillator
-
-        DATA  04,  00,   00,   $FF,    01  'Row 16 Take a photo (turn off oscillator)
-        DATA  04,  00,   10,   $FF,    02  'Row 18 Turn on and Measure current for 20 seconds
-       ' DATA  04,  00,   10,   $FF,    01  'Row 19 Take photo (turn on LED and off current)
-        DATA  04,  00,   20,   $FF,    98  'Row 20 Turn on oscillator
-
-        DATA  05,  00,   00,   $FF,    01  'Row 21 Take a photo (turn off oscillator)
-        DATA  05,  00,   10,   $FF,    02  'Row 23 Turn on and Measure current for 20 seconds
-       ' DATA  05,  00,   10,   $FF,    01  'Row 24 Take photo (turn on LED and off current)
-        DATA  05,  00,   20,   $FF,    98  'Row 25 Turn on oscillator
-        DATA  05,  23,   59,   $FF,    99  'Row 26 Loop back to day 1
+        ' take photo every hour to know whether changes are gradual or instant
 
 ' figure out data storage
 
