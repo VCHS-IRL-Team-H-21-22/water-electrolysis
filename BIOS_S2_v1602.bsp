@@ -555,7 +555,30 @@ P3vector:  GOTO ReturnBack      'back to calling routine
         DATA  01,  00,   00,   $FF,    01  'Row 2  Take photo
         DATA  01,  00,   15,   $FF,    02  'Row 3  Turn on and Measure current for x seconds (take photo)
         DATA  01,  00,   25,   $FF,    03  'Row 4  Turn on oscillator
-        DATA  01,  23,   59,   $FF,    04  'Row 5  Reset the time to 0D 23H 59M
+        DATA  01,  01,   00,   $FF,    01  'Row 5  Take photo
+        DATA  01,  02,   00,   $FF,    01  'Row 6  Take photo
+        DATA  01,  03,   00,   $FF,    01  'Row 7  Take photo
+        DATA  01,  04,   00,   $FF,    01  'Row 8  Take photo
+        DATA  01,  05,   00,   $FF,    01  'Row 9  Take photo
+        DATA  01,  06,   00,   $FF,    01  'Row 10  Take photo
+        DATA  01,  07,   00,   $FF,    01  'Row 11 Take photo
+        DATA  01,  08,   00,   $FF,    01  'Row 12 Take photo
+        DATA  01,  09,   00,   $FF,    01  'Row 13  Take photo
+        DATA  01,  10,   00,   $FF,    01  'Row 14  Take photo
+        DATA  01,  11,   00,   $FF,    01  'Row 15  Take photo
+        DATA  01,  12,   00,   $FF,    01  'Row 16  Take photo
+        DATA  01,  13,   00,   $FF,    01  'Row 17  Take photo
+        DATA  01,  14,   00,   $FF,    01  'Row 18  Take photo
+        DATA  01,  15,   00,   $FF,    01  'Row 19  Take photo
+        DATA  01,  16,   00,   $FF,    01  'Row 20  Take photo
+        DATA  01,  17,   00,   $FF,    01  'Row 21  Take photo
+        DATA  01,  18,   00,   $FF,    01  'Row 22  Take photo
+        DATA  01,  19,   00,   $FF,    01  'Row 23  Take photo
+        DATA  01,  20,   00,   $FF,    01  'Row 24  Take photo
+        DATA  01,  21,   00,   $FF,    01  'Row 25  Take photo
+        DATA  01,  22,   00,   $FF,    01  'Row 26  Take photo
+        DATA  01,  23,   00,   $FF,    01  'Row 27  Take photo
+        DATA  01,  23,   59,   $FF,    04  'Row 28  Reset the time to 0D 23H 59M
 
         ' take photo every hour to know whether changes are gradual or instant
 
