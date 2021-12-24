@@ -20,5 +20,6 @@ for file in glob.glob(data_dir + "*.TXT"):
             + file[file.rfind("/") + 1 :]
             + "  =================="
         )
+        print(lines[2])
         print(lines[17][:-2])
         print([int(str(x), 16) / 10 for x in lines[17][:-2].split()])
