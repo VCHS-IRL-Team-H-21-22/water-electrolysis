@@ -1,6 +1,6 @@
 ' {$STAMP BS2P}
 ' {$PBASIC 2.5}
-' {$PORT COM4}
+' {$PORT COM3}
 
 
 version  CON 1602
@@ -26,7 +26,7 @@ version  CON 1602
 '     Conditional Assemblies
 '
 #DEFINE FlyConfig = 1            '1=Set to Flight Configuration, 0=Test Configuration
-#DEFINE fastclock = 0            '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
+#DEFINE fastclock = 1            '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
 #DEFINE testreset = 1              '1=test reset and reset count
 #DEFINE SaySlot   = 1              '1=Say Slot with vector
 #DEFINE Sayit = 1                  '1=Say what is happening
@@ -425,7 +425,8 @@ FoundEvent:
    Event2_MEASURE,                    'Event 2 (measure j seconds)
    Event3_OSCILLATOR,                  'Event 7 (turn on oscillator)
    Event4_RESET_TIME,                   ' loop back to 0
-   Event5_SET_CONFIG]                  ' set the config for the sensor
+   Event5_SET_CONFIG,                    ' set the time variable
+   Event6_TURN_OFF_EVERYTHING]
 
 
 
@@ -470,6 +471,7 @@ Event1_PICTURE: DEBUG CR,"Take Picture/LED",CR                                  
 ' After taking the photo, it goes to this function:
 TakePhotoReturn:
   I2COUT InternI2c, PCF8574Address, [%11111111]
+  DEBUG CR, "ay wuz good homie", CR
   tempReg0 = 4 'Destination Index (EventTableReturn)
   RUN 0        'Destination Slot
 
@@ -481,7 +483,7 @@ Time5    CON     30
 
 
 Event2_MEASURE: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for j seconds", CR      ' Event 2 (measure j seconds)
-  I2COUT InternI2c, PCF8574Address, [%11010000] ' turn on everything but oscillator and LED
+  I2COUT InternI2c, PCF8574Address, [%11000000] ' turn on everything but oscillator and (REVERT CHANGES LATER) LED
 
   FOR UserVar2 = 0 TO UserVar5:
     GOSUB INA219_test
@@ -499,12 +501,16 @@ Event2_MEASURE: DEBUG CR, "Turn on current across electrodes and Turn off Oscill
     UserVar5 = Time1
   ENDIF
 
-  tempReg0 = 4
-  RUN 0
+  GOSUB Event1_PICTURE
 
 
 Event3_OSCILLATOR: DEBUG CR, "Turn on Oscillator", CR
   I2COUT InternI2c, PCF8574Address, [%00111111]                                                                  ' Event 3 (oscillator)
+  tempReg0 = 4
+  RUN 0
+
+Event6_TURN_OFF_EVERYTHING: DEBUG CR, "Turn off everything!!!!", CR
+  I2COUT InternI2c, PCF8574Address, [%11111111]
   tempReg0 = 4
   RUN 0
 
@@ -551,6 +557,11 @@ P3vector:  GOTO ReturnBack      'back to calling routine
 
          '    Day  Hour  Min   Tag  EventByte
  ETable DATA  00,  00,   00,   $FF,    00  'Row 0  Do Nothing
+        DATA  00,  00,   01,   $FF,    05  'Row 1  Set config
+        DATA  00,  00,   02,   $FF,    01  'Row 2  Take photo
+        DATA  00,  00,   03,   $FF,    02  'Row 3  Turn on and Measure current for x seconds (take photo)
+        DATA  00,  00,   20,   $FF,    03  'Row 4  Turn on oscillator
+        '===============================================================
         DATA  00,  13,   00,   $FF,    05  'Row 1  Set config
         DATA  01,  00,   00,   $FF,    01  'Row 2  Take photo
         DATA  01,  00,   15,   $FF,    02  'Row 3  Turn on and Measure current for x seconds (take photo)
