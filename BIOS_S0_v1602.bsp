@@ -24,8 +24,8 @@ version  CON 1602
 '******************  Start of System Global lables *******************
 '     Conditional Assemblies
 '
-#DEFINE FlyConfig = 0            '1=Set to Flight Configuration, 0=Test Configuration
-#DEFINE fastclock = 1             '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
+#DEFINE FlyConfig = 1            '1=Set to Flight Configuration, 0=Test Configuration
+#DEFINE fastclock = 2             '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
 #DEFINE testreset = 1              '1=test reset and reset count
 #DEFINE SaySlot   = 1              '1=Say Slot with vector
 #DEFINE Sayit = 1                  '1=Say what is happening
