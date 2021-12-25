@@ -651,6 +651,7 @@ INA219_test:
 
   I2COUT PLi2c, INA219,[INA219_current]
   I2CIN  Pli2c, INA219,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
+  GOSUB WriteWordHex
   IF TempWord > 65000 THEN TempWord =0
   DEBUG  "current = ",HEX TempWord,"  ",DEC TempWord,"   "
   TempReg0 = TempWord/10                       'for unit ma digits
@@ -659,3 +660,97 @@ INA219_test:
   DEBUG ".",DEC TempReg0," ma",CR
   DEBUG CR
   RETURN
+
+    '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        '
+'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+'  Routine to write a charator to be appended to the text file associated
+'   with the photo.
+'  Enter with:
+'  BiosWord3 = contains the pointer to the next location in the input file
+'  TempReg0 = with the charator to write.
+'
+WriteOneText:
+    GOSUB getpointers
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'Write to txt buf
+    GOTO storepointers
+'
+'write word in Hex with space
+'
+WriteWordHex:
+    GOSUB getpointers   '
+    TempReg0 = TempWord.HIGHBYTE             'get the high byte
+    TempReg0 = TempReg0>>4                    'place in lower nibble
+    GOSUB WriteOneHex
+    TempReg0 = TempWord.HIGHBYTE & $0F        'remove the upper nebble
+    GOSUB WriteOneHex
+    TempReg0 = TempWord.LOWBYTE             'get the high byte
+    TempReg0 = TempReg0>>4                    'place in lower nibble
+    GOSUB WriteOneHex
+    TempReg0 = TempWord.LOWBYTE & $0F        'remove the upper nebble
+    GOSUB WriteOneHex
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [$20]  'Write space to txt buf
+    GOTO Storepointers
+
+WriteOneHex:
+    TempReg0 = TempReg0 & $0F
+    IF TempReg0 > 9 THEN TempReg0 = TempReg0+7 'point to ABCDEF
+    TempReg0 = TempReg0+$30                  'make it ascii hex
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0]  'Write to txt buf
+    PAUSE 10
+    TempWord1 = TempWord1+1         'inc to point to next
+    xcounter = xcounter+1           'point to next location
+    RETURN
+
+    '
+    'enter with TempWord with number
+    '
+WriteBase10:
+    GOSUB getpointers
+    '
+    TempReg0 = TempWord/10000                      'how many 10000
+    GOSUB Base10support
+    TempWord = TempWord - (TempReg0*10000)           'subt the number of 10000
+    TempReg0 = TempWord/1000                       'how many 10000
+    GOSUB Base10support
+    TempWord = TempWord-(TempReg0*1000)            'sub the number of 1000
+    TempReg0 = TempWord/100                        'how many 100
+    GOSUB Base10support
+    TempWord = TempWord - (TempReg0*100)           'subt number of 100
+    TempReg0 = TempWord/10                         'how many 10
+    GOSUB Base10support
+    TempWord = TempWord - (TempReg0*10)
+    TempReg0 = TempWord
+    GOSUB Base10support
+    GOTO commonreturn
+    '
+Base10support:
+    xcounter = TempWord1 + $D000
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [TempReg0+$30]  'Write to txt buf
+    PAUSE 10
+    TempWord1 = TempWord1+1                        'point to next location
+    RETURN
+    '
+    ' common get pointers for routins
+    '
+getpointers:
+    GET ActiveBank,TempReg2             'Set TempReg2 to the Active Bank 0 2 4
+    GET BiosWord3,TempWord1.LOWBYTE
+    GET BiosWord3h,TempWord1.HIGHBYTE
+    xcounter = TempWord1 + $D000
+    RETURN                              '
+    '
+    ' common store/replace pointers for next time
+    '
+storepointers:
+    PAUSE 10
+    TempWord1 = TempWord1+1         'inc to point to next
+    xcounter = xcounter+1           'point to the next
+    I2COUT InternI2c, $A0 | TempReg2,xcounter.HIGHBYTE\xcounter.LOWBYTE, [$00]  'Write to txt buf
+    PAUSE 10
+commonreturn:
+    PUT BiosWord3,TempWord1.LOWBYTE
+    PUT BiosWord3h,TempWord1.HIGHBYTE
+    RETURN
+
+             '
+'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
