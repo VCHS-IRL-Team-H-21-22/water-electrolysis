@@ -469,7 +469,7 @@ Event1_PICTURE: DEBUG CR,"Take Picture/LED",CR                                  
 ' After taking the photo, it goes to this function:
 TakePhotoReturn:
   I2COUT InternI2c, PCF8574Address, [%11111111]
-  DEBUG CR, "ay wuz good homie", CR
+  'DEBUG CR, "ay wuz good homie", CR
   tempReg0 = 4 'Destination Index (EventTableReturn)
   RUN 0        'Destination Slot
 
@@ -488,7 +488,7 @@ Event2_MEASURE: DEBUG CR, "Turn on current across electrodes and Turn off Oscill
   NEXT
 
   IF UserVar5 = Time1 THEN
-  	DEBUG "UserVar5 = Time1 condition met"
+     'DEBUG "UserVar5 = Time1 condition met"
     UserVar5 = Time2
   ELSEIF UserVar5 = Time2 THEN
     UserVar5 = Time3
@@ -612,23 +612,23 @@ INA219_test:
 ' I2COUT PLi2c, INA219,[INA219_config, %00111111, %11011111]                        'get config register
   I2COUT PLi2c, INA219,[INA219_config,$39,$FF]
   I2CIN  Pli2c, INA219,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
-  DEBUG  "config =  ",BIN TempWord,"  ",DEC TempWord,CR
+  'DEBUG  "config =  ",BIN TempWord,"  ",DEC TempWord,CR
 
   I2COUT PLi2c, INA219,[INA219_cal,$10,$00]
   I2CIN  Pli2c, INA219,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
-  DEBUG  "cal =     ",HEX TempWord,"  ",DEC TempWord,CR
+  'DEBUG  "cal =     ",HEX TempWord,"  ",DEC TempWord,CR
 
   I2COUT PLi2c, INA219,[INA219_shunt]                         'get shunt voltage
   I2CIN  Pli2c, INA219,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
   IF TempWord > 65000 THEN TempWord =0
-  DEBUG  "shunt =   ",HEX TempWord,"  ",DEC TempWord,CR
+  'DEBUG  "shunt =   ",HEX TempWord,"  ",DEC TempWord,CR
 
 
 
   I2COUT PLi2c, INA219,[INA219_bus]                            'get input buss voltage
   I2CIN  Pli2c, INA219,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
    IF TempWord > 65000 THEN TempWord =0
-  DEBUG  "bus =     ",HEX TempWord,"  ",DEC TempWord,"  "
+  'DEBUG  "bus =     ",HEX TempWord,"  ",DEC TempWord,"  "
    TempWord1 = TempWord/2000                        ' print voltage dec
   DEBUG DEC TempWord1                  'for unit digit
   DEBUG "."
@@ -645,7 +645,7 @@ INA219_test:
 
   I2COUT PLi2c, INA219,[INA219_power]
   I2CIN  Pli2c, INA219,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
-  DEBUG  "power =   ",HEX TempWord,"  ",DEC TempWord,CR
+  'DEBUG  "power =   ",HEX TempWord,"  ",DEC TempWord,CR
 
   I2COUT PLi2c, INA219,[INA219_current]
   I2CIN  Pli2c, INA219,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
