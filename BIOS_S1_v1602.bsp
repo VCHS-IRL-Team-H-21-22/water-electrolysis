@@ -432,8 +432,8 @@ PayloadTestP1:
          RUN 6           'Execute a slot goto proceedure now doit
      GOTO PayloadOptionsText
 PayloadTestP2:
-     DEBUG CR,"All Current Source On",CR
-     I2COUT InternI2c, PCF8574Address, [%00000000]           '
+     DEBUG CR,"LED on",CR
+     I2COUT InternI2c, PCF8574Address, [%11101111]           '
      GOTO PayloadOptionsText
 
 
