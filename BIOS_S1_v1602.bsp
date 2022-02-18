@@ -423,7 +423,7 @@ PayloadTestP1:
      DEBUG CR, "Take Picture", CR
      I2COUT InternI2c, PCF8574Address, [%11101111]           ' put pin # of LED
          '   Take a High Resolution Photo of the Chamber
-     PUT    CameraRes,Camera320       'Template default
+     PUT    CameraRes,Camera640       'Template default
      PUT    CameraQua,CameraNormal     'set to Normal
      PUT VectorFromSlot,2 'Return Slot
      PUT VectorFromNum,1  'Return Index
@@ -432,7 +432,7 @@ PayloadTestP1:
          RUN 6           'Execute a slot goto proceedure now doit
      GOTO PayloadOptionsText
 PayloadTestP2:
-     DEBUG CR,"LED on",CR
+     DEBUG CR,"Turn on LED",CR
      I2COUT InternI2c, PCF8574Address, [%11101111]           '
      GOTO PayloadOptionsText
 
@@ -440,12 +440,11 @@ PayloadTestP2:
 PayloadTestP3:
   DEBUG CR, "Measure Current indefinitely", CR
   I2COUT InternI2c, PCF8574Address, [%11000000]
-  FOR UserVar2 = 1 TO 10:
-    'SERIN con_in,con_baud,[UserVar3] 'get terminal input
-    'IF UserVar3 = 8 THEN:
-     ' GOTO PayloadOptionsText
-    'ENDIF
+  FOR UserVar2 = 1 TO 20:
     GOSUB INA219_test
+    'TempWord = 300
+    'DEBUG TempWord, CR
+    'GOSUB WriteWordHex
     PAUSE 500
   NEXT
   I2COUT InternI2c, PCF8574Address, [%11111111]
