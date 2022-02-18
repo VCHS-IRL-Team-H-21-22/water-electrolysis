@@ -1,6 +1,6 @@
 ' {$STAMP BS2P}
 ' {$PBASIC 2.5}
-' {$PORT COM3}
+' {$PORT  COM4}
 
 
 version  CON 1602
@@ -26,7 +26,7 @@ version  CON 1602
 '     Conditional Assemblies
 '
 #DEFINE FlyConfig = 1            '1=Set to Flight Configuration, 0=Test Configuration
-#DEFINE fastclock = 1            '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
+#DEFINE fastclock = 0            '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
 #DEFINE testreset = 1              '1=test reset and reset count
 #DEFINE SaySlot   = 1              '1=Say Slot with vector
 #DEFINE Sayit = 1                  '1=Say what is happening
@@ -483,8 +483,9 @@ Time5    CON     30
 Event2_MEASURE: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for j seconds", CR      ' Event 2 (measure j seconds)
   I2COUT InternI2c, PCF8574Address, [%11000000] ' turn on everything but oscillator and (REVERT CHANGES LATER) LED
 
-  FOR UserVar2 = 0 TO UserVar5:
+  FOR UserVar2 = 1 TO UserVar5:
     GOSUB INA219_test
+    PAUSE 500
   NEXT
 
   IF UserVar5 = Time1 THEN
@@ -555,10 +556,11 @@ P3vector:  GOTO ReturnBack      'back to calling routine
 
          '    Day  Hour  Min   Tag  EventByte
  ETable DATA  00,  00,   00,   $FF,    00  'Row 0  Do Nothing
-        DATA  00,  00,   01,   $FF,    01 ' 05 'Row 1  Set confi
-        DATA  00,  00,   02,   $FF,    04 ' 01 'Row 2  Take photo
-        DATA  00,  00,   03,   $FF,    02  'Row 3  Turn on and Measure current for x seconds (take photo)
-        DATA  00,  00,   20,   $FF,    03  'Row 4  Turn on oscillator
+      '  DATA  00,  00,   01,   $FF,    05 ' 05 'Row 1  Set config
+       ' DATA  00,  00,   02,   $FF,    01 ' 01 'Row 2  Take photo
+        'DATA  00,  00,   03,   $FF,    02  'Row 3  Turn on and Measure current for x seconds (take photo)
+        'DATA  00,  00,   04,   $FF,    03  'Row 4  Turn on oscillator
+        'DATA  00,  00,   10,   $FF,    02  'Row 3  Turn on and Measure current for x seconds (take photo)
         '===============================================================
         DATA  00,  13,   00,   $FF,    05  'Row 1  Set config 'row 5
         DATA  01,  00,   00,   $FF,    01  'Row 2  Take photo
@@ -596,7 +598,7 @@ P3vector:  GOTO ReturnBack      'back to calling routine
 INA219_test:
 'note PLi2c = 8
 
- DEBUG CR,"--- INA219 ---",CR       'skip 2 lines between test
+' DEBUG CR,"--- INA219 ---",CR       'skip 2 lines between test
 
   INA219           CON $80                     'slave address of INA219
   INA219_config    CON $00
