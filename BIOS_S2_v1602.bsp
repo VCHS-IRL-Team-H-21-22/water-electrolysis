@@ -520,7 +520,7 @@ Event4_RESET_TIME: DEBUG CR, "Resetting time", CR                               
   WRITE DurHour,00
   WRITE DurMin, 00
   STORE 2
-  FOR tempReg0 = 0 TO 3
+  FOR tempReg0 = 2 TO 27
     WRITE Etable+(tempReg0*5)+3, $FF 'reset the tags
   NEXT
   STORE DataStorage
