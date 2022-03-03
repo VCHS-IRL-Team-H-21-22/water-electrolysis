@@ -423,7 +423,7 @@ PayloadTestP1:
      DEBUG CR, "Take Picture", CR
      I2COUT InternI2c, PCF8574Address, [%11101111]           ' put pin # of LED
          '   Take a High Resolution Photo of the Chamber
-     PUT    CameraRes,Camera640       'Template default
+     PUT    CameraRes,Camera320       'Template default
      PUT    CameraQua,CameraNormal     'set to Normal
      PUT VectorFromSlot,2 'Return Slot
      PUT VectorFromNum,1  'Return Index
