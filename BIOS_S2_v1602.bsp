@@ -1,6 +1,6 @@
 ' {$STAMP BS2P}
 ' {$PBASIC 2.5}
-' {$PORT  COM4}
+' {$PORT  COM3}
 
 
 version  CON 1602
@@ -423,8 +423,8 @@ FoundEvent:
    Event2_MEASURE,                    'Event 2 (measure j seconds)
    Event3_OSCILLATOR,                  'Event 7 (turn on oscillator)
    Event4_RESET_TIME,                   ' loop back to 0
-   Event5_SET_CONFIG,                    ' set the time variable
-   Event6_TURN_OFF_EVERYTHING]
+   Event5_SET_CONFIG]                    ' set the time variable
+
 
 
 
@@ -468,8 +468,7 @@ Event1_PICTURE: DEBUG CR,"Take Picture/LED",CR                                  
 
 ' After taking the photo, it goes to this function:
 TakePhotoReturn:
-  I2COUT InternI2c, PCF8574Address, [%11111111]
-  'DEBUG CR, "ay wuz good homie", CR
+  I2COUT InternI2c, PCF8574Address, [%00111111]
   tempReg0 = 4 'Destination Index (EventTableReturn)
   RUN 0        'Destination Slot
 
@@ -481,7 +480,7 @@ Time5    CON     30
 
 
 Event2_MEASURE: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for j seconds", CR      ' Event 2 (measure j seconds)
-  I2COUT InternI2c, PCF8574Address, [%11000000] ' turn on everything but oscillator and (REVERT CHANGES LATER) LED
+  I2COUT InternI2c, PCF8574Address, [%11010000] ' turn on everything but oscillator and LED
 
   FOR UserVar2 = 1 TO UserVar5:
     GOSUB INA219_test
@@ -509,18 +508,15 @@ Event3_OSCILLATOR: DEBUG CR, "Turn on Oscillator", CR
   tempReg0 = 4
   RUN 0
 
-Event6_TURN_OFF_EVERYTHING: DEBUG CR, "Turn off everything!!!!", CR
-  I2COUT InternI2c, PCF8574Address, [%11111111]
-  tempReg0 = 4
-  RUN 0
+
 
 Event4_RESET_TIME: DEBUG CR, "Resetting time", CR                                                                ' Event 4 (reset time)
   STORE 0
   WRITE DurDay, 00
-  WRITE DurHour,00
-  WRITE DurMin, 00
+  WRITE DurHour,23
+  WRITE DurMin, 59
   STORE 2
-  FOR tempReg0 = 2 TO 27
+  FOR tempReg0 = 2 TO 28
     WRITE Etable+(tempReg0*5)+3, $FF 'reset the tags
   NEXT
   STORE DataStorage
@@ -528,13 +524,6 @@ Event4_RESET_TIME: DEBUG CR, "Resetting time", CR                               
   RUN 0        'Destination Slot
 
 Event5_SET_CONFIG: DEBUG CR, "Setting UserVar5 to first time", CR
-  'I2COUT 8, $80, $00, [%00100111, %11111111] 'set configuration register
-  'PAUSE 1000
-  'I2CIN 8, $80, $00, [UserVar2, UserVar4]
-  'DEBUG "Configuration register: ", BIN UserVar2, BIN UserVar4, CR
-  'I2COUT 8, $80, $05, [$FF, $FF]
-  'I2CIN 8, $80, $05, [UserVar2, UserVar4]
-  'DEBUG "Calibration register: ", BIN UserVar2, BIN UserVar4, CR
   UserVar5 = Time1
   tempReg0 = 4
   RUN 0
@@ -556,13 +545,8 @@ P3vector:  GOTO ReturnBack      'back to calling routine
 
          '    Day  Hour  Min   Tag  EventByte
  ETable DATA  00,  00,   00,   $FF,    00  'Row 0  Do Nothing
-      '  DATA  00,  00,   01,   $FF,    05 ' 05 'Row 1  Set config
-       ' DATA  00,  00,   02,   $FF,    01 ' 01 'Row 2  Take photo
-        'DATA  00,  00,   03,   $FF,    02  'Row 3  Turn on and Measure current for x seconds (take photo)
-        'DATA  00,  00,   04,   $FF,    03  'Row 4  Turn on oscillator
-        'DATA  00,  00,   10,   $FF,    02  'Row 3  Turn on and Measure current for x seconds (take photo)
-        '===============================================================
-        DATA  00,  13,   00,   $FF,    05  'Row 1  Set config 'row 5
+        'DATA  00,  00,   02,   $FF,    04  'Row 0.5  Reset the time    MAKE SURE THIS ROW IS COMMENTED OUT!!!!
+        DATA  00,  13,   00,   $FF,    05  'Row 1  Set config
         DATA  01,  00,   00,   $FF,    01  'Row 2  Take photo
         DATA  01,  00,   15,   $FF,    02  'Row 3  Turn on and Measure current for x seconds (take photo)
         DATA  01,  00,   25,   $FF,    03  'Row 4  Turn on oscillator
@@ -589,7 +573,7 @@ P3vector:  GOTO ReturnBack      'back to calling routine
         DATA  01,  21,   00,   $FF,    01  'Row 25  Take photo
         DATA  01,  22,   00,   $FF,    01  'Row 26  Take photo
         DATA  01,  23,   00,   $FF,    01  'Row 27  Take photo
-        DATA  01,  23,   59,   $FF,    04  'Row 28  Reset the time to 0D 23H 59M 'row 32
+        DATA  01,  23,   59,   $FF,    04  'Row 28  Reset the time to 0D 23H 59M
 
         ' take photo every hour to know whether changes are gradual or instant
 
