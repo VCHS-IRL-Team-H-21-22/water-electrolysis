@@ -469,22 +469,23 @@ Event1_PICTURE: DEBUG CR,"Take Picture/LED",CR                                  
 ' After taking the photo, it goes to this function:
 TakePhotoReturn:
   I2COUT InternI2c, PCF8574Address, [%00111111]
+  DEBUG "Took a photo :)"
   tempReg0 = 4 'Destination Index (EventTableReturn)
   RUN 0        'Destination Slot
 
-Time1    CON     5
-Time2    CON     10
-Time3    CON     15
-Time4    CON     20
-Time5    CON     30
+Time1    CON     500
+Time2    CON     1000
+Time3    CON     2000
+Time4    CON     5000
+Time5    CON     10000
 
 
 Event2_MEASURE: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for j seconds", CR      ' Event 2 (measure j seconds)
   I2COUT InternI2c, PCF8574Address, [%11010000] ' turn on everything but oscillator and LED
 
-  FOR UserVar2 = 1 TO UserVar5:
+  FOR UserVar2 = 1 TO 30:
     GOSUB INA219_test
-    PAUSE 500
+    PAUSE UserVar5
   NEXT
 
   IF UserVar5 = Time1 THEN
@@ -544,8 +545,8 @@ P3vector:  GOTO ReturnBack      'back to calling routine
 
 
          '    Day  Hour  Min   Tag  EventByte
- ETable DATA  00,  00,   00,   $FF,    00  'Row 0  Do Nothing
-        'DATA  00,  00,   02,   $FF,    04  'Row 0.5  Reset the time    MAKE SURE THIS ROW IS COMMENTED OUT!!!!
+ ETable DATA  00,  00,   00,   $FF,    02  'Row 0  Do Nothing
+        DATA  00,  00,   02,   $FF,    01  'Row 0.5  Reset the time    MAKE SURE THIS ROW IS COMMENTED OUT!!!!
         DATA  00,  13,   00,   $FF,    05  'Row 1  Set config
         DATA  01,  00,   00,   $FF,    01  'Row 2  Take photo
         DATA  01,  00,   15,   $FF,    02  'Row 3  Turn on and Measure current for x seconds (take photo)
