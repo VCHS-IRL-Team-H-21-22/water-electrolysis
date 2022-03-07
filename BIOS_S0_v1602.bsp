@@ -1,4 +1,4 @@
-' {$STAMP BS2P, BIOS_s1_v1602.bsp, BIOS_s2_v1602.bsp, BIOS_s3_v1602.bsp, BIOS_s4_v1602.bsp, BIOS_s5_v1602.bsp, BIOS_s6_v1602.bsp, BIOS_s7_v1602.bsp}
+' {$STAMP BS2p , BIOS_s1_v1602.bsp, BIOS_s2_v1602.bsp, BIOS_s3_v1602.bsp, BIOS_s4_v1602.bsp, BIOS_s5_v1602.bsp, BIOS_s6_v1602.bsp, BIOS_s7_v1602.bsp}
 ' {$PBASIC 2.5}
 ' {$PORT COM3}
 

@@ -1,6 +1,6 @@
 ' {$STAMP BS2P}
 ' {$PBASIC 2.5}
-' {$PORT COM4}
+' {$PORT COM3}
 
 
 version  CON 1602
@@ -391,7 +391,7 @@ HeartBeatReturn:
     IF UserVar0 = "1" THEN PayloadTestP1
     IF UserVar0 = "2" THEN PayloadTestP2
     IF UserVar0 = "3" THEN PayloadTestP3
-    'IF UserVar0 = "4" THEN PayloadTestP4
+    IF UserVar0 = "4" THEN PayloadTestP4
     'IF UserVar0 = "5" THEN PayloadTestP5
     'IF UserVar0 = "6" THEN PayloadTestP6
     IF UserVar0 = "7" THEN PayloadTestP7
@@ -431,6 +431,7 @@ PayloadTestP1:
      TempReg3 = 6    'Destination Slot
          RUN 6           'Execute a slot goto proceedure now doit
      GOTO PayloadOptionsText
+
 PayloadTestP2:
      DEBUG CR,"Turn on LED",CR
      I2COUT InternI2c, PCF8574Address, [%11101111]           '
@@ -451,6 +452,10 @@ PayloadTestP3:
   ' DO ... LOOP
   GOTO PayloadOptionsText
 
+PayloadTestP4:
+  DEBUG CR, "Check config", CR
+  GOSUB INA219_test
+  GOTO PayloadOptionsText
 
 PayloadTestP7:
     DEBUG CR, "Turn on Oscillator", CR

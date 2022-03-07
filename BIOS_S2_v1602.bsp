@@ -469,38 +469,32 @@ Event1_PICTURE: DEBUG CR,"Take Picture/LED",CR                                  
 ' After taking the photo, it goes to this function:
 TakePhotoReturn:
   I2COUT InternI2c, PCF8574Address, [%00111111]
-  DEBUG "Took a photo :)"
+  'DEBUG CR, "HELLO I TOOK A PHOTO GUYS", CR
+  TempWord = $FFFF
+  GOSUB WriteWordHex
   tempReg0 = 4 'Destination Index (EventTableReturn)
   RUN 0        'Destination Slot
 
-Time1    CON     500
-Time2    CON     1000
-Time3    CON     2000
-Time4    CON     5000
-Time5    CON     10000
 
 
 Event2_MEASURE: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for j seconds", CR      ' Event 2 (measure j seconds)
   I2COUT InternI2c, PCF8574Address, [%11010000] ' turn on everything but oscillator and LED
-
+  DEBUG CR, "UserVar5", DEC UserVar5, CR
   FOR UserVar2 = 1 TO 30:
     GOSUB INA219_test
-    PAUSE UserVar5
+    IF UserVar5 = 0 THEN
+      PAUSE 500
+    ELSEIF UserVar5 = 1 THEN
+      PAUSE 1000
+    ELSEIF UserVar5 = 2 THEN
+      PAUSE 1500
+    ELSEIF UserVar5 = 3 THEN
+      PAUSE 3000
+    ELSEIF UserVar5 = 4 THEN
+      PAUSE 8000
+    ENDIF
   NEXT
-
-  IF UserVar5 = Time1 THEN
-     'DEBUG "UserVar5 = Time1 condition met"
-    UserVar5 = Time2
-  ELSEIF UserVar5 = Time2 THEN
-    UserVar5 = Time3
-  ELSEIF UserVar5 = Time3 THEN
-    UserVar5 = Time4
-  ELSEIF UserVar5 = Time4 THEN
-    UserVar5 = Time5
-  ELSEIF UserVar5 = Time5 THEN
-    UserVar5 = Time1
-  ENDIF
-
+  UserVar5 = (UserVar5 + 1) // 5
   GOSUB Event1_PICTURE
 
 
@@ -524,8 +518,8 @@ Event4_RESET_TIME: DEBUG CR, "Resetting time", CR                               
   tempReg0 = 4 'Destination Index (EventTableReturn)
   RUN 0        'Destination Slot
 
-Event5_SET_CONFIG: DEBUG CR, "Setting UserVar5 to first time", CR
-  UserVar5 = Time1
+Event5_SET_CONFIG: DEBUG CR, "Setting UserVar5 to 0", CR
+  UserVar5 = 0
   tempReg0 = 4
   RUN 0
 
@@ -545,8 +539,14 @@ P3vector:  GOTO ReturnBack      'back to calling routine
 
 
          '    Day  Hour  Min   Tag  EventByte
- ETable DATA  00,  00,   00,   $FF,    02  'Row 0  Do Nothing
-        DATA  00,  00,   02,   $FF,    01  'Row 0.5  Reset the time    MAKE SURE THIS ROW IS COMMENTED OUT!!!!
+ ETable DATA  00,  00,   00,   $FF,    00  'Row 0  Do Nothing
+
+        DATA  00,  00,   01,   $FF,    05    ' TEST set config
+      DATA  00,  00,   02,   $FF,    02    ' TEST measure electrolysis
+       DATA  00,  00,   03,   $FF,    01    ' TEST photo again
+       DATA  00,  00,   04,   $FF,    02    ' TEST eloctroslysis again
+      DATA  00,  00,   05,   $FF,    01    ' TEST photo again               ' 4 photos in total
+
         DATA  00,  13,   00,   $FF,    05  'Row 1  Set config
         DATA  01,  00,   00,   $FF,    01  'Row 2  Take photo
         DATA  01,  00,   15,   $FF,    02  'Row 3  Turn on and Measure current for x seconds (take photo)
@@ -577,8 +577,6 @@ P3vector:  GOTO ReturnBack      'back to calling routine
         DATA  01,  23,   59,   $FF,    04  'Row 28  Reset the time to 0D 23H 59M
 
         ' take photo every hour to know whether changes are gradual or instant
-
-' figure out data storage
 
 INA219_test:
 'note PLi2c = 8
