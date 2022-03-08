@@ -25,7 +25,7 @@ version  CON 1602
 '     Conditional Assemblies
 '
 #DEFINE FlyConfig = 0            '1=Set to Flight Configuration, 0=Test Configuration
-#DEFINE fastclock = 2             '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
+#DEFINE fastclock = 0             '0=Normal Time X1, 1=Medium Time ~X17 2=Fast Time ~X60
 #DEFINE testreset = 1              '1=test reset and reset count
 #DEFINE SaySlot   = 1              '1=Say Slot with vector
 #DEFINE Sayit = 1                  '1=Say what is happening
@@ -587,8 +587,8 @@ MoprClk1Val CON 30  'Heartbeat every 30 sec, seems ok
 MoprClk2Val CON 30   '10 times speed
     #ENDIF
     #IF fastclock = 2 #THEN
-MoprClk0Val CON 100 ' "720"1st mission operations counter, times to chk masterin base
-MoprClk1Val CON 60  ' Heartbeat every 30 sec, seems ok
+MoprClk0Val CON 75 ' "720"1st mission operations counter, times to chk masterin base
+MoprClk1Val CON 30  ' Heartbeat every 30 sec, seems ok
 MoprClk2Val CON 2 '10 mintime to do chamber operations
     #ENDIF
 MoprMinVal  CON 2  'Count 2 HeartBeats - used for counting minutes

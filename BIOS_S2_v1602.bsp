@@ -468,6 +468,7 @@ Event1_PICTURE: DEBUG CR,"Take Picture/LED",CR                                  
 
 ' After taking the photo, it goes to this function:
 TakePhotoReturn:
+  'I2COUT InternI2c, PCF8574Address, [%00111111]
   I2COUT InternI2c, PCF8574Address, [%00111111]
   'DEBUG CR, "HELLO I TOOK A PHOTO GUYS", CR
   TempWord = $FFFF
@@ -477,11 +478,13 @@ TakePhotoReturn:
 
 
 
-Event2_MEASURE: DEBUG CR, "Turn on current across electrodes and Turn off Oscillator and start measuring for j seconds", CR      ' Event 2 (measure j seconds)
+Event2_MEASURE: DEBUG CR, "Turn on current across electrodes", CR      ' Event 2 (measure j seconds)
   I2COUT InternI2c, PCF8574Address, [%11010000] ' turn on everything but oscillator and LED
-  DEBUG CR, "UserVar5", DEC UserVar5, CR
+  DEBUG CR, "UserVar5=", DEC UserVar5, CR
   FOR UserVar2 = 1 TO 30:
-    GOSUB INA219_test
+    'GOSUB INA219_test
+    TempWord = UserVar5
+    GOSUB WriteWordHex
     IF UserVar5 = 0 THEN
       PAUSE 500
     ELSEIF UserVar5 = 1 THEN
@@ -542,12 +545,13 @@ P3vector:  GOTO ReturnBack      'back to calling routine
  ETable DATA  00,  00,   00,   $FF,    00  'Row 0  Do Nothing
 
         DATA  00,  00,   01,   $FF,    05    ' TEST set config
-      DATA  00,  00,   02,   $FF,    02    ' TEST measure electrolysis
-       DATA  00,  00,   03,   $FF,    01    ' TEST photo again
-       DATA  00,  00,   04,   $FF,    02    ' TEST eloctroslysis again
-      DATA  00,  00,   05,   $FF,    01    ' TEST photo again               ' 4 photos in total
+        DATA  00,  00,   02,   $FF,    02    ' TEST measure electrolysis
+        DATA  00,  00,   03,   $FF,    01    ' TEST photo again
+        DATA  00,  00,   04,   $FF,    02    ' TEST eloctroslysis again
+        DATA  00,  00,   05,   $FF,    01    ' TEST photo again               ' 4 photos in total
 
         DATA  00,  13,   00,   $FF,    05  'Row 1  Set config
+
         DATA  01,  00,   00,   $FF,    01  'Row 2  Take photo
         DATA  01,  00,   15,   $FF,    02  'Row 3  Turn on and Measure current for x seconds (take photo)
         DATA  01,  00,   25,   $FF,    03  'Row 4  Turn on oscillator
