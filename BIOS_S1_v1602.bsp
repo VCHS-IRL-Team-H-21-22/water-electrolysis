@@ -1,6 +1,6 @@
 ' {$STAMP BS2P}
 ' {$PBASIC 2.5}
-' {$PORT COM3}
+' {$PORT COM5}
 
 
 version  CON 1602
@@ -392,7 +392,7 @@ HeartBeatReturn:
     IF UserVar0 = "2" THEN PayloadTestP2
     IF UserVar0 = "3" THEN PayloadTestP3
     IF UserVar0 = "4" THEN PayloadTestP4
-    'IF UserVar0 = "5" THEN PayloadTestP5
+    IF UserVar0 = "5" THEN PayloadTestP5
     'IF UserVar0 = "6" THEN PayloadTestP6
     IF UserVar0 = "7" THEN PayloadTestP7
 
@@ -439,10 +439,10 @@ PayloadTestP2:
 
 
 PayloadTestP3:
-  DEBUG CR, "Measure Current indefinitely", CR
+  DEBUG CR, "Measure Current 20 times", CR
   I2COUT InternI2c, PCF8574Address, [%11000000]
   FOR UserVar2 = 1 TO 20:
-    GOSUB INA219_test
+    GOSUB INA219_test_NOWRITE
     'TempWord = 300
     'DEBUG TempWord, CR
     'GOSUB WriteWordHex
@@ -454,7 +454,20 @@ PayloadTestP3:
 
 PayloadTestP4:
   DEBUG CR, "Check config", CR
-  GOSUB INA219_test
+  GOSUB INA219_test_NOWRITE
+  GOTO PayloadOptionsText
+
+PayloadTestP5:
+  DEBUG CR, "Measure Current once", CR
+  I2COUT InternI2c, PCF8574Address, [%11000000]
+  PAUSE 500
+  GOSUB INA219_test_NOWRITE
+    'TempWord = 300
+    'DEBUG TempWord, CR
+    'GOSUB WriteWordHex
+
+  I2COUT InternI2c, PCF8574Address, [%11111111]
+  ' DO ... LOOP
   GOTO PayloadOptionsText
 
 PayloadTestP7:
@@ -475,7 +488,7 @@ PayloadTestOff:
     tempReg0 = 4
     GOTO PayloadOptionsText
 
-INA219_test:
+INA219_test_NOWRITE:
 'note PLi2c = 8
 
  DEBUG CR,"--- INA219 ---",CR       'skip 2 lines between test
@@ -531,7 +544,7 @@ INA219_test:
 
   I2COUT PLi2c, INA219,[INA219_current]
   I2CIN  Pli2c, INA219,[TempWord.HIGHBYTE,TempWord.LOWBYTE]
-  GOSUB WriteWordHex
+  'GOSUB WriteWordHex
   IF TempWord > 65000 THEN TempWord =0
   DEBUG  "current = ",HEX TempWord,"  ",DEC TempWord,"   "
   TempReg0 = TempWord/10                       'for unit ma digits
