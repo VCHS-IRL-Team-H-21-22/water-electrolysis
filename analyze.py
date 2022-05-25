@@ -21,7 +21,9 @@ pause_times = [0.5,1, 1.5, 3, 8]
 index = 0
 
 data_dir = "./data/"
-for file in glob.glob(data_dir + "*.TXT"):
+files = glob.glob(data_dir + "*.TXT")
+files.sort()
+for file in files:
     with open(file, "r") as fr:
         lines = fr.readlines()
         print(
