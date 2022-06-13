@@ -53,7 +53,7 @@ for file in files:
         # plt.xlabel('Time after turning on electrolysis (s)')
         # plt.show()
 
-        ## Fit graph to Gaussian
+        ## Fit graph to exponential
         parameters, covariance = curve_fit(exponential, x, data)
         A = parameters[0]
         B = parameters[1]
