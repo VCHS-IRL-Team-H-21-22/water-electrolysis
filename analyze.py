@@ -73,7 +73,7 @@ for file in files:
         print("B: " + str(B))
         print("C: " + str(C))
         print("R^2" + str(r_squared))
-        output.writerow([file_name, A, B, C, r_squared])
+        output.writerow([file_name, A, B, C, r_squared] + data)
         
         plt.plot(x, data, 'o', label='data')
         plt.plot(x, fit, '-', label='fit: y= ' +str(round(A,1))+' exp(-'+str(round(B,1))+'x) + '+str(round(C,1)))
@@ -81,7 +81,7 @@ for file in files:
         plt.ylabel('Current reading (mA)')
         plt.xlabel('Time after turning on electrolysis (s)')
         plt.show()
-output.close()
+
 
 
 
