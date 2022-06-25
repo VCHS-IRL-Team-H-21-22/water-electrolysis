@@ -510,8 +510,8 @@ Event3_OSCILLATOR: DEBUG CR, "Turn on Oscillator", CR
 Event4_RESET_TIME: DEBUG CR, "Resetting time", CR                                                                ' Event 4 (reset time)
   STORE 0
   WRITE DurDay, 00
-  WRITE DurHour,23
-  WRITE DurMin, 59
+  WRITE DurHour,00
+  WRITE DurMin, 15
   STORE 2
   FOR tempReg0 = 2 TO 28
     WRITE Etable+(tempReg0*5)+3, $FF 'reset the tags
@@ -549,35 +549,35 @@ P3vector:  GOTO ReturnBack      'back to calling routine
         'DATA  00,  00,   04,   $FF,    02    ' TEST eloctroslysis again
         ' DATA  00,  00,   05,   $FF,    01    ' TEST photo again               ' 4 photos in total
 
-        DATA  00,  13,   00,   $FF,    05  'Row 1  Set config
+        DATA  00,  00,   06,   $FF,    05  'Row 1  Set config
 
-        DATA  01,  00,   00,   $FF,    01  'Row 2  Take photo
-        DATA  01,  00,   15,   $FF,    02  'Row 3  Turn on and Measure current for x seconds (take photo)
-        DATA  01,  00,   25,   $FF,    03  'Row 4  Turn on oscillator
-        DATA  01,  01,   00,   $FF,    01  'Row 5  Take photo
-        DATA  01,  02,   00,   $FF,    01  'Row 6  Take photo
-        DATA  01,  02,   01,   $FF,    00  'Row 7  Take photo
-        DATA  01,  02,   02,   $FF,    00  'Row 8  Take photo
-        DATA  01,  02,   03,   $FF,    00  'Row 9  Take photo
-        DATA  01,  02,   04,   $FF,    00  'Row 10  Take photo
-        DATA  01,  02,   05,   $FF,    00  'Row 11 Take photo
-        DATA  01,  02,   06,   $FF,    00  'Row 12 Take photo
-        DATA  01,  02,   07,   $FF,    00  'Row 13  Take photo
-        DATA  01,  02,   08,   $FF,    00  'Row 14  Take photo
-        DATA  01,  02,   09,   $FF,    00  'Row 15  Take photo
-        DATA  01,  02,   10,   $FF,    00  'Row 16  Take photo
-        DATA  01,  02,   11,   $FF,    00  'Row 17  Take photo
-        DATA  01,  02,   12,   $FF,    00  'Row 18  Take photo
-        DATA  01,  02,   13,   $FF,    00  'Row 19  Take photo
-        DATA  01,  02,   14,   $FF,    00  'Row 20  Take photo
-        DATA  01,  02,   15,   $FF,    00  'Row 21  Take photo
-        DATA  01,  02,   16,   $FF,    00  'Row 22  Take photo
-        DATA  01,  02,   17,   $FF,    00  'Row 23  Take photo
-        DATA  01,  02,   18,   $FF,    00  'Row 24  Take photo
-        DATA  01,  02,   19,   $FF,    00  'Row 25  Take photo
-        DATA  01,  02,   20,   $FF,    00  'Row 26  Take photo
-        DATA  01,  02,   21,   $FF,    00  'Row 27  Take photo
-        DATA  01,  02,   59,   $FF,    04  'Row 28  Reset the time to 0D 23H 59M
+        DATA  00,  00,   7,   $FF,    01  'Row 2  Take photo
+        DATA  00,  00,   20,   $FF,    02  'Row 3  Turn on and Measure current for x seconds (take photo)
+        DATA  00,  00,   28,   $FF,    03  'Row 4  Turn on oscillator
+        DATA  00,  00,   29,   $FF,    01  'Row 5  Take photo
+        DATA  00,  00,   40,   $FF,    01  'Row 6  Take photo
+        DATA  00,  00,   41,   $FF,    00  'Row 7  Take photo
+        DATA  00,  00,   42,   $FF,    00  'Row 8  Take photo
+        DATA  00,  00,   43,   $FF,    00  'Row 9  Take photo
+        DATA  00,  00,   44,   $FF,    00  'Row 10  Take photo
+        DATA  00,  00,   45,   $FF,    00  'Row 11 Take photo
+        DATA  00,  00,   46,   $FF,    00  'Row 12 Take photo
+        DATA  00,  00,   47,   $FF,    00  'Row 13  Take photo
+        DATA  00,  00,   48,   $FF,    00  'Row 14  Take photo
+        DATA  00,  00,   49,   $FF,    00  'Row 15  Take photo
+        DATA  00,  00,   50,   $FF,    00  'Row 16  Take photo
+        DATA  00,  00,   51,   $FF,    00  'Row 17  Take photo
+        DATA  00,  00,   52,   $FF,    00  'Row 18  Take photo
+        DATA  00,  00,   53,   $FF,    00  'Row 19  Take photo
+        DATA  00,  00,   54,   $FF,    00  'Row 20  Take photo
+        DATA  00,  00,   55,   $FF,    00  'Row 21  Take photo
+        DATA  00,  00,   56,   $FF,    00  'Row 22  Take photo
+        DATA  00,  00,   57,   $FF,    00  'Row 23  Take photo
+        DATA  00,  00,   58,   $FF,    00  'Row 24  Take photo
+        DATA  00,  00,   59,   $FF,    00  'Row 25  Take photo
+        DATA  00,  01,   01,   $FF,    00  'Row 26  Take photo
+        DATA  00,  01,   02,   $FF,    00  'Row 27  Take photo
+        DATA  00,  01,   03,   $FF,    04  'Row 28  Reset the time to 0D 00H 15M
 
         ' take photo every hour to know whether changes are gradual or instant
 
