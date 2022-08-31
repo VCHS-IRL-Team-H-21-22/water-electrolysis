@@ -98,13 +98,12 @@ for file in files:
         rc('font',**{'family':'serif','serif':['Arial'],'size':14})
         #rc('text', usetex=True)
         plt.errorbar(x, data, fmt='o', yerr = data_err, label='data')
-        plt.plot(x, fit, '-', label=f'fit: y = A exp(-Bx) + C\nA={round(A,4)}\nB={"%.4f" % round(B,4)}\nC={round(C,4)}')
-
-        plt.legend(title=f'R²={round(r_squared, 3)}')
+        plt.plot(x, fit, '-', label=f'fit: I(t) = A exp(-Bt) + C\nA={round(A,4)}\nB={"%.4f" % round(B,4)}\nC={round(C,4)}\nR²={round(r_squared, 3)}')
+        plt.legend()
         plt.title(f'Trial {prefix}{trial_num}')
         plt.ylabel('Current reading (mA)')
         plt.xlabel('Time after turning on electrolysis (s)')
-        plt.show()
+        plt.savefig(f'/Users/canis/downloads/{prefix}{trial_num}.png')
 
 
 
