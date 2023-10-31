@@ -1,5 +1,5 @@
 # water-electrolysis
-For more information, check out our published paper at the Journal of Emerging Investigators at (link to abstract).
+For more information, check out our published paper at the Journal of Emerging Investigators at: [Effects of microconvection on bubble displacement during water electrolysis under microgravity](https://emerginginvestigators.org/articles/22-246).
 
 
 ![image](https://github.com/VCHS-IRL-Team-H-21-22/water-electrolysis/assets/73449574/b789398f-46cf-47cb-b525-26ed8fff771d)
